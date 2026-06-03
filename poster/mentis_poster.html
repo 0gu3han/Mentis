@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>MENTIS Poster</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:       #ffffff;
+  --s1:       #f7f8fc;
+  --s2:       #f2f4f9;
+  --s3:       #e8ebf4;
+  --s4:       #dde1ef;
+  --indigo:   #4c56c0;
+  --indigo2:  #3540a8;
+  --teal:     #0d9e88;
+  --teal2:    #0b7d6c;
+  --violet:   #7c52d8;
+  --amber:    #c8880a;
+  --rose:     #d44060;
+  --text:     #1a1d2e;
+  --muted:    #3d4460;
+  --dim:      #7880a0;
+  --glow-i:   rgba(76,86,192,0.08);
+  --glow-t:   rgba(13,158,136,0.07);
+}
+
+html,body{width:1920px;height:1440px;overflow:hidden;background:#ffffff;font-family:'Inter',sans-serif;color:var(--text)}
+
+/* ─── BG LAYER ─── */
+.bg-layer{position:fixed;inset:0;pointer-events:none;z-index:0}
+.bg-grid{
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(76,86,192,0.05) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(76,86,192,0.05) 1px,transparent 1px);
+  background-size:60px 60px;
+}
+.orb{position:absolute;border-radius:50%;filter:blur(90px);opacity:0.4}
+.orb-1{width:700px;height:700px;background:radial-gradient(circle,rgba(76,86,192,0.12),transparent 70%);top:-200px;left:-150px}
+.orb-2{width:500px;height:500px;background:radial-gradient(circle,rgba(13,158,136,0.10),transparent 70%);bottom:-100px;right:-50px}
+.orb-3{width:400px;height:400px;background:radial-gradient(circle,rgba(124,82,216,0.09),transparent 70%);top:400px;right:300px}
+.orb-4{width:350px;height:350px;background:radial-gradient(circle,rgba(13,158,136,0.08),transparent 70%);bottom:200px;left:500px}
+
+/* decorative circles */
+.deco-ring{position:absolute;border-radius:50%;border:1px solid;pointer-events:none}
+.ring-1{width:320px;height:320px;border-color:rgba(76,86,192,0.12);top:-80px;right:420px}
+.ring-2{width:180px;height:180px;border-color:rgba(13,158,136,0.14);bottom:340px;left:260px}
+.ring-3{width:90px;height:90px;border-color:rgba(124,82,216,0.18);top:220px;right:80px}
+.ring-4{width:50px;height:50px;border-color:rgba(76,86,192,0.22);top:650px;left:1420px}
+
+/* diagonal accent line */
+.deco-line{position:absolute;pointer-events:none}
+.line-tl{width:2px;height:280px;background:linear-gradient(to bottom,transparent,rgba(76,86,192,0.25),transparent);top:60px;left:640px;transform:rotate(20deg)}
+.line-br{width:2px;height:200px;background:linear-gradient(to bottom,transparent,rgba(13,158,136,0.25),transparent);bottom:100px;right:640px;transform:rotate(-15deg)}
+
+/* ─── LAYOUT ─── */
+.poster{position:relative;z-index:1;width:1920px;height:1440px;display:grid;grid-template-rows:148px 1fr 88px;padding:0}
+
+/* ─── HEADER ─── */
+.header{
+  display:grid;
+  grid-template-columns:170px 1fr 240px;
+  align-items:center;
+  gap:32px;
+  padding:0 60px;
+  background:linear-gradient(180deg,#f2f4f9 0%,#ffffff 100%);
+  border-bottom:1px solid rgba(76,86,192,0.15);
+  position:relative;
+  overflow:hidden;
+}
+.header::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--indigo),var(--teal),transparent);
+}
+.logo-wrap img{width:130px;height:auto;filter:drop-shadow(0 2px 8px rgba(76,86,192,0.2))}
+.header-mid{text-align:center}
+.h-eyebrow{font-size:0.62rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
+.h-title{
+  font-family:'Space Grotesk',sans-serif;font-size:1.85rem;font-weight:800;
+  letter-spacing:-0.02em;line-height:1.15;
+  background:linear-gradient(120deg,#3540a8 0%,#4c56c0 35%,#0d9e88 70%,#0b7d6c 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.h-sub{font-family:'Space Grotesk',sans-serif;font-size:1.05rem;font-weight:400;color:var(--muted);margin-top:5px;letter-spacing:0.01em}
+.header-right{display:flex;flex-direction:column;align-items:flex-end;gap:7px}
+.hbadge{
+  background:rgba(76,86,192,0.08);border:1px solid rgba(76,86,192,0.25);
+  border-radius:20px;padding:4px 14px;font-size:0.65rem;letter-spacing:0.1em;
+  text-transform:uppercase;color:#3540a8;
+}
+.hbadge.teal{background:rgba(13,158,136,0.08);border-color:rgba(13,158,136,0.25);color:#0d9e88}
+.h-inst{font-size:0.7rem;color:var(--dim);margin-top:4px;letter-spacing:0.06em}
+
+/* ─── BODY ─── */
+.body{
+  display:grid;
+  grid-template-columns:400px 1fr 400px;
+  gap:0;
+  padding:28px 32px 24px;
+  gap:20px;
+}
+
+/* ─── COLUMN ─── */
+.col{display:flex;flex-direction:column;gap:16px}
+
+/* ─── CARD ─── */
+.card{
+  background:var(--s2);
+  border-radius:14px;
+  padding:20px 22px;
+  position:relative;
+  overflow:hidden;
+  border:1px solid rgba(76,86,192,0.1);
+}
+.card-accent{position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0}
+.acc-indigo{background:linear-gradient(90deg,var(--indigo),var(--indigo2))}
+.acc-teal  {background:linear-gradient(90deg,var(--teal),var(--teal2))}
+.acc-violet{background:linear-gradient(90deg,var(--violet),#6a4bb8)}
+.acc-amber {background:linear-gradient(90deg,var(--amber),#c8880a)}
+.acc-rose  {background:linear-gradient(90deg,var(--rose),#b83255)}
+.acc-multi {background:linear-gradient(90deg,var(--indigo),var(--teal),var(--violet))}
+
+.card-inner-glow{
+  position:absolute;top:-40px;right:-40px;width:160px;height:160px;
+  border-radius:50%;filter:blur(50px);pointer-events:none;opacity:0.12;
+}
+.glow-i{background:var(--indigo)}
+.glow-t{background:var(--teal)}
+.glow-v{background:var(--violet)}
+
+.card-icon-row{display:flex;align-items:center;gap:10px;margin-bottom:11px}
+.icon-box{
+  width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.ib-indigo{background:rgba(108,117,212,0.18)}
+.ib-teal  {background:rgba(30,184,158,0.18)}
+.ib-violet{background:rgba(155,113,232,0.18)}
+.ib-amber {background:rgba(232,168,56,0.18)}
+.ib-rose  {background:rgba(232,92,122,0.18)}
+.icon-box svg{width:18px;height:18px}
+
+.card-title{font-family:'Space Grotesk',sans-serif;font-size:0.95rem;font-weight:700;color:#1a1d2e;letter-spacing:-0.01em}
+.card-body{font-size:0.76rem;line-height:1.65;color:var(--muted)}
+.card-body strong{color:#1a1d2e;font-weight:600}
+
+/* ─── FEATURE LIST ─── */
+.flist{list-style:none;display:flex;flex-direction:column;gap:7px;margin-top:8px}
+.flist li{display:flex;align-items:flex-start;gap:8px;font-size:0.75rem;color:var(--muted);line-height:1.5;}
+.fdot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.fdot-i{background:var(--indigo)}
+.fdot-t{background:var(--teal)}
+.fdot-v{background:var(--violet)}
+.fdot-a{background:var(--amber)}
+.fdot-r{background:var(--rose)}
+.flist strong{color:#1a1d2e;font-weight:600}
+
+/* ─── NUMBERED LIST ─── */
+.nlist{list-style:none;display:flex;flex-direction:column;gap:9px;margin-top:8px}
+.nlist li{display:flex;align-items:flex-start;gap:10px;font-size:0.75rem;color:var(--muted);line-height:1.5}
+.num{
+  width:22px;height:22px;border-radius:6px;background:rgba(76,86,192,0.12);
+  font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.7rem;color:#3540a8;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+
+/* ─── QUOTE ─── */
+.quote{
+  border-left:2px solid var(--indigo);background:rgba(76,86,192,0.06);
+  border-radius:0 8px 8px 0;padding:9px 14px;margin-top:10px;
+  font-size:0.73rem;color:var(--muted);font-style:italic;line-height:1.6;
+}
+
+/* ─── STATS ─── */
+.stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px}
+.stat{background:var(--s3);border-radius:10px;padding:12px 10px;text-align:center}
+.stat-val{
+  font-family:'Space Grotesk',sans-serif;font-size:2rem;font-weight:700;
+  background:linear-gradient(135deg,#3540a8,#0d9e88);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.stat-lbl{font-size:0.62rem;letter-spacing:0.07em;text-transform:uppercase;color:var(--dim);margin-top:2px}
+
+/* ─── PIPELINE ─── */
+.pipe{display:flex;align-items:center;gap:0;margin-top:12px}
+.pstep{flex:1;background:var(--s3);border-radius:8px;padding:9px 6px;text-align:center}
+.pstep .pi{margin-bottom:3px}
+.pstep .pi svg{width:18px;height:18px}
+.pstep .pl{font-size:0.58rem;letter-spacing:0.07em;text-transform:uppercase;color:var(--dim)}
+.pstep .pt{font-size:0.7rem;color:#3540a8;font-weight:600;margin-top:1px}
+.parr{width:18px;text-align:center;flex-shrink:0}
+.parr svg{width:14px;height:14px;color:var(--dim)}
+
+/* ─── ROOM TAGS ─── */
+.rtags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.rtag{background:rgba(76,86,192,0.08);border:1px solid rgba(76,86,192,0.2);border-radius:16px;padding:3px 11px;font-size:0.67rem;color:#3540a8;letter-spacing:0.04em}
+.rtag.t{background:rgba(13,158,136,0.08);border-color:rgba(13,158,136,0.2);color:#0d9e88}
+
+/* ─── CENTER COLUMN ─── */
+.center-col{display:flex;flex-direction:column;gap:16px}
+
+/* hero demo */
+.demo-hero{
+  position:relative;border-radius:16px;overflow:hidden;
+  border:1px solid rgba(76,86,192,0.2);
+  box-shadow:0 4px 24px rgba(76,86,192,0.1),0 2px 8px rgba(0,0,0,0.08);
+}
+.demo-hero img{width:100%;display:block;height:330px;object-fit:cover;object-position:top}
+.demo-hero-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(8,12,18,0.75) 0%,transparent 45%);
+}
+
+/* three-up demos */
+.demo-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.demo-thumb{
+  position:relative;border-radius:12px;overflow:hidden;
+  border:1px solid rgba(76,86,192,0.15);
+  box-shadow:0 4px 16px rgba(0,0,0,0.1);
+  transition:transform 0.2s;
+}
+.demo-thumb img{width:100%;display:block;height:200px;object-fit:cover}
+.demo-thumb-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(8,12,18,0.85) 0%,transparent 50%);
+}
+.demo-thumb-label{
+  position:absolute;bottom:10px;left:10px;right:10px;
+}
+.dt-title{font-family:'Space Grotesk',sans-serif;font-size:0.75rem;font-weight:600;color:#ffffff;text-shadow:0 1px 4px rgba(0,0,0,0.6)}
+.dt-sub{font-size:0.62rem;color:rgba(255,255,255,0.75);margin-top:2px;text-shadow:0 1px 3px rgba(0,0,0,0.5)}
+
+/* number badge on demo */
+.demo-num{
+  position:absolute;top:10px;left:10px;
+  width:26px;height:26px;border-radius:8px;
+  background:rgba(108,117,212,0.8);backdrop-filter:blur(6px);
+  font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.72rem;color:#fff;
+  display:flex;align-items:center;justify-content:center;
+}
+
+/* ─── FOOTER ─── */
+.footer{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 60px;
+  background:#f2f4f9;
+  border-top:1px solid rgba(76,86,192,0.15);
+  font-size:0.64rem;color:var(--dim);letter-spacing:0.05em;
+  position:relative;
+}
+.footer::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(76,86,192,0.4),rgba(13,158,136,0.4),transparent);
+}
+.footer-ref{max-width:900px;line-height:1.6;color:var(--dim)}
+.footer-ref em{color:var(--muted)}
+.footer-right{display:flex;align-items:center;gap:16px}
+.footer-dot{width:4px;height:4px;border-radius:50%;background:rgba(76,86,192,0.3)}
+
+/* ─── CONCLUSION CARD ─── */
+.conclusion{
+  background:linear-gradient(135deg,rgba(76,86,192,0.07) 0%,rgba(13,158,136,0.05) 100%);
+  border:1px solid rgba(76,86,192,0.18);
+  border-radius:14px;padding:18px 22px;
+  position:relative;overflow:hidden;
+}
+.conclusion::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at top left,rgba(76,86,192,0.05),transparent 60%);
+}
+
+/* ─── TECH CHIP ROW ─── */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{
+  background:var(--s3);border-radius:6px;
+  padding:3px 10px;font-size:0.67rem;color:var(--muted);border:1px solid rgba(76,86,192,0.1);
+}
+.chip.hi{border-color:rgba(76,86,192,0.25);color:#3540a8}
+.chip.ht{border-color:rgba(13,158,136,0.25);color:#0d9e88}
+
+/* separator line */
+.sep{width:100%;height:1px;background:rgba(255,255,255,0.05);margin:2px 0}
+
+</style>
+</head>
+<body>
+
+<!-- BG -->
+<div class="bg-layer">
+  <div class="bg-grid"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+  <div class="orb orb-4"></div>
+  <div class="deco-ring ring-1"></div>
+  <div class="deco-ring ring-2"></div>
+  <div class="deco-ring ring-3"></div>
+  <div class="deco-ring ring-4"></div>
+  <div class="deco-line line-tl"></div>
+  <div class="deco-line line-br"></div>
+</div>
+
+<div class="poster">
+
+  <!-- ══════════ HEADER ══════════ -->
+  <header class="header">
+    <div class="logo-wrap">
+      <img src="URECALogo-1-1024x976.webp" alt="URECA"/>
+    </div>
+    <div class="header-mid">
+      <div class="h-eyebrow">URECA: Undergraduate Research Experience &amp; Creative Activity &nbsp;·&nbsp; Middle Tennessee State University</div>
+      <div class="h-title">The Virtual Memory Palace as an Interactive Mnemonic Learning Platform</div>
+      <div class="h-sub" style="margin-top:8px">Oguzhan Rejepov &nbsp;·&nbsp; <span style="color:var(--dim)">Faculty Mentor: Xin Yang</span></div>
+    </div>
+    <div class="header-right">
+      <div class="hbadge">EdTech &amp; Cognitive Science</div>
+      <div class="hbadge teal">3D Web · XR-Ready</div>
+      <div class="hbadge">Spring 2026</div>
+      <div class="h-inst">Dept. of Computer Science, MTSU</div>
+    </div>
+  </header>
+
+  <!-- ══════════ BODY ══════════ -->
+  <div class="body">
+
+    <!-- ── LEFT COLUMN ── -->
+    <div class="col">
+
+      <!-- MOTIVATION -->
+      <div class="card">
+        <div class="card-accent acc-indigo"></div>
+        <div class="card-inner-glow glow-i"></div>
+        <div class="card-icon-row">
+          <div class="icon-box ib-indigo">
+            <!-- brain / lightbulb icon -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="#a0a8ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 2a4 4 0 0 0-3.464 6A4 4 0 0 0 6 15v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1a4 4 0 0 0 .464-7A4 4 0 0 0 15 2z"/>
+              <path d="M9 18v3M12 18v3M15 18v3"/>
+            </svg>
+          </div>
+          <div class="card-title">Motivation</div>
+        </div>
+        <div class="card-body">
+          Memorising complex information (vocabulary, historical events, scientific concepts) is a persistent challenge. People routinely underutilise the brain's greatest strength: <strong>spatial &amp; contextual memory</strong>.<br/><br/>
+          Studies show recall improvement of <strong>5–9%</strong> when spatial placement is used versus flat-list study. Yet most digital learning tools offer only passive content review, leaving the core power of the technique untapped.
+        </div>
+      </div>
+
+      <!-- METHOD OF LOCI -->
+      <div class="card">
+        <div class="card-accent acc-violet"></div>
+        <div class="card-inner-glow glow-v"></div>
+        <div class="card-icon-row">
+          <div class="icon-box ib-violet">
+            <!-- map / path icon -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="#c09aff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
+              <line x1="9" y1="3" x2="9" y2="18"/>
+              <line x1="15" y1="6" x2="15" y2="21"/>
+            </svg>
+          </div>
+          <div class="card-title">Method of Loci</div>
+        </div>
+        <div class="card-body">
+          Traced to ancient Greek orators (Cicero, <em>De Oratore</em>, 55 BC), the technique associates each item to memorise with a distinct <strong>location</strong> along a mentally traversed path.
+        </div>
+        <div class="quote">"The method relates what we want to learn with a story and a real or imagined location, the chambers of our imagined palace." - Bierig &amp; Krueger, QoMEx 2020</div>
+        <div class="card-body" style="margin-top:10px">
+          Episodic spatial memory (hippocampal) has far greater fidelity than semantic list memory. MENTIS externalises the internal palace into a navigable 3D space.
+        </div>
+      </div>
+
+      <!-- RESEARCH QUESTIONS -->
+      <div class="card">
+        <div class="card-accent acc-teal"></div>
+        <div class="card-icon-row">
+          <div class="icon-box ib-teal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#4fd4c0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+          <div class="card-title">Research Questions</div>
+        </div>
+        <ol class="nlist">
+          <li><span class="num">1</span><span>Can a <strong>browser-based 3D environment</strong> serve as an effective locus system for diverse learners without VR hardware?</span></li>
+          <li><span class="num">2</span><span>Does <strong>active object placement</strong> outperform passive content review in recall tasks?</span></li>
+          <li><span class="num">3</span><span>How usable is the system for first-time users, measured by <strong>SUS score</strong> and qualitative observation?</span></li>
+        </ol>
+      </div>
+
+      <!-- DESIGN SYSTEM -->
+      <div class="card">
+        <div class="card-accent acc-amber"></div>
+        <div class="card-icon-row">
+          <div class="icon-box ib-amber">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#e8c86a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="13.5" cy="6.5" r="2.5"/>
+              <circle cx="6.5" cy="17.5" r="2.5"/>
+              <circle cx="18" cy="17" r="2.5"/>
+              <line x1="13.5" y1="9" x2="13.5" y2="14.5"/>
+              <line x1="11.3" y1="7.8" x2="8.3" y2="15.5"/>
+              <line x1="15.5" y1="7.8" x2="16.5" y2="14.5"/>
+            </svg>
+          </div>
+          <div class="card-title">Design System: Celestial Atheneum</div>
+        </div>
+        <ul class="flist">
+          <li><span class="fdot fdot-a"></span><span><strong>Deep Indigo palette:</strong> surface layers from #080c12 to #222830</span></li>
+          <li><span class="fdot fdot-a"></span><span><strong>Glassmorphism:</strong> backdrop-blur + 60% opacity floating panels</span></li>
+          <li><span class="fdot fdot-a"></span><span><strong>Space Grotesk + Inter:</strong> editorial display / high-readability body</span></li>
+          <li><span class="fdot fdot-a"></span><span><strong>No borders:</strong> depth defined by background value shifts only</span></li>
+          <li><span class="fdot fdot-a"></span><span><strong>Fade &amp; Scale:</strong> objects appear from depth, not slide-in</span></li>
+        </ul>
+      </div>
+
+    </div><!-- /left col -->
+
+    <!-- ── CENTER COLUMN ── -->
+    <div class="center-col">
+
+      <!-- HERO DEMO -->
+      <div class="demo-hero">
+        <img src="landing.png" alt="MENTIS Landing Page"/>
+        <div class="demo-hero-overlay"></div>
+      </div>
+
+      <!-- THREE DEMO THUMBS -->
+      <div class="demo-row">
+        <div class="demo-thumb">
+          <img src="demo1.png" alt="Empty classroom locus"/>
+          <div class="demo-thumb-overlay"></div>
+          <div class="demo-num">01</div>
+          <div class="demo-thumb-label">
+            <div class="dt-title">Navigate the Palace</div>
+            <div class="dt-sub">Orbit &amp; explore each locus freely</div>
+          </div>
+        </div>
+        <div class="demo-thumb">
+          <img src="demo2.png" alt="Anchor placement UI"/>
+          <div class="demo-thumb-overlay"></div>
+          <div class="demo-num" style="background:rgba(30,184,158,0.8)">02</div>
+          <div class="demo-thumb-label">
+            <div class="dt-title">Place Anchors</div>
+            <div class="dt-sub">Attach mnemonic notes to 3D space</div>
+          </div>
+        </div>
+        <div class="demo-thumb">
+          <img src="demo3.png" alt="MENTIS dashboard"/>
+          <div class="demo-thumb-overlay"></div>
+          <div class="demo-num" style="background:rgba(155,113,232,0.8)">03</div>
+          <div class="demo-thumb-label">
+            <div class="dt-title">Manage Rooms</div>
+            <div class="dt-sub">Upload GLB rooms or pick demo environments</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LEARNING PARADIGM -->
+      <div class="card" style="flex-shrink:0">
+        <div class="card-accent acc-multi"></div>
+        <div class="card-inner-glow glow-t"></div>
+        <div class="card-icon-row">
+          <div class="icon-box ib-teal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#4fd4c0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+            </svg>
+          </div>
+          <div class="card-title">Active Learning Paradigm</div>
+        </div>
+        <div class="card-body">
+          Users receive a <strong>learning topic</strong> (e.g. Nobel Prize winners) and construct a personal story by placing objects through rooms. <strong>Active encoding</strong> (choosing, placing, composing objects) drives deeper processing than passive reading, consistent with the <em>generation effect</em> in cognitive psychology.
+        </div>
+        <div class="quote" style="margin-top:9px">
+          To remember "James Chadwick, discovery of the neutron": place a <em>top hat</em> (Sir) next to a small <em>atom model</em> in the study. A vivid, location-anchored scene, unforgettable.
+        </div>
+      </div>
+
+      <!-- EVALUATION -->
+      <div class="card" style="flex-shrink:0">
+        <div class="card-accent acc-teal"></div>
+        <div class="card-icon-row">
+          <div class="icon-box ib-teal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#4fd4c0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10"/>
+              <line x1="12" y1="20" x2="12" y2="4"/>
+              <line x1="6"  y1="20" x2="6"  y2="14"/>
+            </svg>
+          </div>
+          <div class="card-title">Usability Evaluation (SUS, n=6)</div>
+        </div>
+        <div class="stats-row">
+          <div class="stat">
+            <div class="stat-val">75.5</div>
+            <div class="stat-lbl">Palace SUS</div>
+          </div>
+          <div class="stat">
+            <div class="stat-val">82.5</div>
+            <div class="stat-lbl">Object Menu SUS</div>
+          </div>
+          <div class="stat">
+            <div class="stat-val" style="font-size:1.4rem;padding-top:4px">Above<br/>Avg</div>
+            <div class="stat-lbl">Industry Avg 68</div>
+          </div>
+        </div>
+        <div class="card-body" style="margin-top:10px">
+          Both scores <strong>exceed the SUS industry average of 68</strong>. Participants naturally attempted object stacking, throwing, and composition, confirming strong interactive affordance and desire for richer storytelling.
+        </div>
+      </div>
+
+    </div><!-- /center col -->
+
+    <!-- ── RIGHT COLUMN ── -->
+    <div class="col">
+
+      <!-- KEY FEATURES -->
+      <div class="card">
+        <div class="card-accent acc-teal"></div>
+        <div class="card-inner-glow glow-t"></div>
+        <div class="card-icon-row">
+          <div class="icon-box ib-teal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#4fd4c0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+          </div>
+          <div class="card-title">Key Features</div>
+        </div>
+        <ul class="flist">
+          <li><span class="fdot fdot-t"></span><span><strong>3D Room Navigation:</strong> orbit, pan, inspect each locus from any angle</span></li>
+          <li><span class="fdot fdot-t"></span><span><strong>Spatial Note Anchors:</strong> attach mnemonic text tags to precise 3D positions</span></li>
+          <li><span class="fdot fdot-t"></span><span><strong>GLB/GLTF Upload:</strong> import custom 3D models or use built-in props</span></li>
+          <li><span class="fdot fdot-t"></span><span><strong>Sketchfab Integration:</strong> browse thousands of community 3D objects</span></li>
+          <li><span class="fdot fdot-t"></span><span><strong>Room Management:</strong> create, rename, sequence multiple palace rooms</span></li>
+          <li><span class="fdot fdot-t"></span><span><strong>Session Persistence:</strong> layouts saved server-side, accessible across visits</span></li>
+          <li><span class="fdot fdot-t"></span><span><strong>No Headset Required:</strong> runs entirely in a browser, XR optional</span></li>
+        </ul>
+      </div>
+
+      <!-- VIRTUAL HOUSE -->
+      <div class="card">
+        <div class="card-accent acc-indigo"></div>
+        <div class="card-icon-row">
+          <div class="icon-box ib-indigo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#a0a8ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+          </div>
+          <div class="card-title">The Virtual House (Loci)</div>
+        </div>
+        <div class="card-body">Designed per established memory palace guidelines: familiar, ordered, emptied, distinct, and rendered in a <strong>low-poly</strong> caricaturist style that preserves salience without visual overload.</div>
+        <div class="rtags">
+          <span class="rtag">Kitchen</span>
+          <span class="rtag">Living Room</span>
+          <span class="rtag t">Bathroom</span>
+          <span class="rtag">Bedroom</span>
+          <span class="rtag t">Hallway</span>
+          <span class="rtag">Home Office</span>
+          <span class="rtag t">Classroom</span>
+        </div>
+      </div>
+
+      <!-- SYSTEM ARCHITECTURE -->
+      <div class="card">
+        <div class="card-accent acc-violet"></div>
+        <div class="card-inner-glow glow-v"></div>
+        <div class="card-icon-row">
+          <div class="icon-box ib-violet">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#c09aff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2"/>
+              <line x1="8" y1="21" x2="16" y2="21"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+          </div>
+          <div class="card-title">System Architecture</div>
+        </div>
+        <div class="pipe">
+          <div class="pstep">
+            <div class="pi"><svg viewBox="0 0 24 24" fill="none" stroke="#4c56c0" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+            <div class="pl">Frontend</div>
+            <div class="pt">React + Vite</div>
+          </div>
+          <div class="parr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+          <div class="pstep">
+            <div class="pi"><svg viewBox="0 0 24 24" fill="none" stroke="#c09aff" stroke-width="1.8" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73L13 2.27a2 2 0 0 0-2 0L4 6.27A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div>
+            <div class="pl">3D Engine</div>
+            <div class="pt">Three.js</div>
+          </div>
+          <div class="parr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+          <div class="pstep">
+            <div class="pi"><svg viewBox="0 0 24 24" fill="none" stroke="#4fd4c0" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg></div>
+            <div class="pl">API</div>
+            <div class="pt">Flask</div>
+          </div>
+          <div class="parr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+          <div class="pstep">
+            <div class="pi"><svg viewBox="0 0 24 24" fill="none" stroke="#e8c86a" stroke-width="1.8" stroke-linecap="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></div>
+            <div class="pl">Data</div>
+            <div class="pt">SQLite</div>
+          </div>
+        </div>
+        <div class="chips">
+          <span class="chip hi">Python 3.11</span>
+          <span class="chip hi">React 18</span>
+          <span class="chip ht">Three.js r160</span>
+          <span class="chip">GLTF / GLB</span>
+          <span class="chip ht">WebXR-ready</span>
+          <span class="chip">Sketchfab API</span>
+        </div>
+      </div>
+
+      <!-- FUTURE WORK -->
+      <div class="card">
+        <div class="card-accent acc-rose"></div>
+        <div class="card-icon-row">
+          <div class="icon-box ib-rose">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#f08098" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </div>
+          <div class="card-title">Future Work</div>
+        </div>
+        <ul class="flist">
+          <li><span class="fdot fdot-r"></span><span><strong>Controlled recall study:</strong> MENTIS vs. flashcards over 1 week retention</span></li>
+          <li><span class="fdot fdot-r"></span><span><strong>Object interactions:</strong> stack, compose &amp; animate props for richer storytelling</span></li>
+          <li><span class="fdot fdot-r"></span><span><strong>WebXR / VR mode:</strong> head-mounted display support with full room-scale</span></li>
+          <li><span class="fdot fdot-r"></span><span><strong>Collaborative palaces:</strong> shared rooms for synchronous group study</span></li>
+          <li><span class="fdot fdot-r"></span><span><strong>AI mnemonic suggestion:</strong> Claude API object recommendations from topic keywords</span></li>
+        </ul>
+      </div>
+
+      <!-- CONCLUSION -->
+      <div class="conclusion">
+        <div style="position:relative;z-index:1">
+          <div class="card-icon-row">
+            <div class="icon-box ib-indigo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#a0a8ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
+            <div class="card-title">Conclusion</div>
+          </div>
+          <div class="card-body">
+            MENTIS demonstrates that the ancient method of loci can be faithfully implemented in a modern web browser with no specialist hardware. By combining a <strong>navigable low-poly 3D house</strong>, <strong>interactive spatial anchor placement</strong>, and <strong>persistent session memory</strong>, the system delivers the full generative power of the memory palace. Above-average SUS scores validate the interface; qualitative data confirms learner engagement and creative drive.
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /right col -->
+
+  </div><!-- /body -->
+
+  <!-- ══════════ FOOTER ══════════ -->
+  <footer class="footer">
+    <div class="footer-ref">
+      <strong style="color:var(--dim)">References:</strong>&nbsp;
+      R. Bierig &amp; L. Krueger, "The Virtual Memory Palace as an Interactive Mnemonic Learning Platform," <em>QoMEx 2020</em> &nbsp;·&nbsp;
+      F. A. Yates, <em>The Art of Memory</em>, U. of Chicago Press, 1966 &nbsp;·&nbsp;
+      J. P. Huttner &amp; R. B. Susanne, "An Immersive Memory Palace," <em>AMCIS 2017</em>
+    </div>
+    <div class="footer-right">
+      <div class="footer-dot"></div>
+      <span style="color:var(--indigo);font-weight:600">URECA</span>
+      <div class="footer-dot"></div>
+      <span>Middle Tennessee State University</span>
+      <div class="footer-dot"></div>
+      <span>Spring 2026</span>
+      <div class="footer-dot"></div>
+    </div>
+  </footer>
+
+</div><!-- /poster -->
+</body>
+</html>

@@ -1,5 +1,5 @@
 // src/api.js
-const BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5001'
+const BASE = import.meta.env.VITE_API_BASE || ''
 
 export async function login(email) {
   try {
@@ -33,9 +33,8 @@ export async function createRoom(user_id, name, file) {
 }
 
 export async function listRooms(user_id) {
-  const url = new URL(`${BASE}/rooms`)
-  if (user_id) url.searchParams.set('user_id', user_id)
-  const res = await fetch(url)
+  const qs = user_id ? `?user_id=${encodeURIComponent(user_id)}` : ''
+  const res = await fetch(`${BASE}/rooms${qs}`)
   return res.json()
 }
 
@@ -44,9 +43,7 @@ export function roomGlbUrl(room_id) {
 }
 
 export async function listAnchors(room_id) {
-  const url = new URL(`${BASE}/anchors`)
-  url.searchParams.set('room_id', room_id)
-  const res = await fetch(url)
+  const res = await fetch(`${BASE}/anchors?room_id=${encodeURIComponent(room_id)}`)
   if (!res.ok) {
     const error = await res.json().catch(() => ({ error: `HTTP ${res.status}: ${res.statusText}` }))
     throw new Error(error.error || `listAnchors failed with status ${res.status}`)
@@ -80,9 +77,26 @@ export async function createObject(data) {
   return res.json()
 }
 
+export async function deleteRoom(room_id) {
+  const res = await fetch(`${BASE}/rooms/${room_id}`, { method: 'DELETE' })
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ error: `HTTP ${res.status}: ${res.statusText}` }))
+    throw new Error(error.error || `deleteRoom failed with status ${res.status}`)
+  }
+  return res.json()
+}
+
+export async function deleteAnchor(anchor_id) {
+  const res = await fetch(`${BASE}/anchors/${anchor_id}`, { method: 'DELETE' })
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ error: `HTTP ${res.status}: ${res.statusText}` }))
+    throw new Error(error.error || `deleteAnchor failed with status ${res.status}`)
+  }
+  return res.json()
+}
+
 export async function getNextReview(room_id) {
-  const url = new URL(`${BASE}/review/next`)
-  if (room_id) url.searchParams.set('room_id', room_id)
-  const res = await fetch(url)
+  const qs = room_id ? `?room_id=${encodeURIComponent(room_id)}` : ''
+  const res = await fetch(`${BASE}/review/next${qs}`)
   return res.json()
 }
