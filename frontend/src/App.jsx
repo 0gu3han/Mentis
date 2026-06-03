@@ -1,93 +1,262 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { login, createRoom, listRooms, roomGlbUrl } from './api'
+import { login, createRoom, listRooms, roomGlbUrl, deleteRoom } from './api'
 import RoomViewer from './RoomViewer'
+import SketchfabViewer from './SketchfabViewer'
+import HeroBg from './HeroBg'
+
+const DEMO_ROOMS = [
+  {
+    id: 'sketchfab-927ef282eceb47e29397b52147d4d6c3',
+    name: 'Living Room',
+    category: 'Home',
+    sketchfabId: '927ef282eceb47e29397b52147d4d6c3',
+    author: 'fleewortep',
+  },
+  {
+    id: 'sketchfab-44e7a9cfed67431e827d0cbaabd462c7',
+    name: 'Loft Apartment',
+    category: 'Home',
+    sketchfabId: '44e7a9cfed67431e827d0cbaabd462c7',
+    author: 'Zeps3D',
+  },
+  {
+    id: 'sketchfab-3ecfa670dbd946ec80b49d7df74ab453',
+    name: 'Modular Classroom Preview',
+    category: 'Education',
+    sketchfabId: '3ecfa670dbd946ec80b49d7df74ab453',
+    author: 'lazarys',
+  },
+  {
+    id: 'sketchfab-79615d823a9149069dcd06c20bc9707f',
+    name: 'The Billiards Room',
+    category: 'Other',
+    sketchfabId: '79615d823a9149069dcd06c20bc9707f',
+    author: 'The Hallwyl Museum',
+  },
+]
+
+const CATEGORY_ORDER = ['Home', 'Education', 'Office', 'Other']
+
+function groupByCategory(rooms) {
+  const map = {}
+  for (const room of rooms) {
+    const cat = room.category || 'Other'
+    if (!map[cat]) map[cat] = []
+    map[cat].push(room)
+  }
+  return CATEGORY_ORDER.filter((c) => map[c]).map((c) => ({ category: c, rooms: map[c] }))
+}
+
+// Persist login across page refreshes
+function getSavedUser() {
+  try { return JSON.parse(sessionStorage.getItem('mentis_user')) } catch { return null }
+}
+function saveUser(u) {
+  sessionStorage.setItem('mentis_user', JSON.stringify(u))
+}
+function clearUser() {
+  sessionStorage.removeItem('mentis_user')
+}
 
 export default function App() {
-  const [user, setUser] = useState(null)
+  const [user, setUser]         = useState(getSavedUser)
+  const [emailInput, setEmail]  = useState('')
   const [loginError, setLoginError] = useState(null)
-  const [rooms, setRooms] = useState([])
+  const [loggingIn, setLoggingIn]   = useState(false)
+  const [rooms, setRooms]       = useState([])
   const [activeRoom, setActiveRoom] = useState(null)
+  const [uploading, setUploading]   = useState(false)
   const fileRef = useRef()
   const nameRef = useRef()
 
-  useEffect(() => {
-    login('demo@mentis.app')
-      .then(setUser)
-      .catch((err) => {
-        console.error('Login failed', err)
-        setLoginError(err.message || String(err))
-        // optional: show an alert so user notices
-        alert(`Login failed: ${err.message || err}`)
-      })
-  }, [])
+  function selectRoom(room) {
+    setActiveRoom(room)
+    setTimeout(() => {
+      document.getElementById('viewer-section')?.scrollIntoView({ behavior: 'smooth' })
+    }, 80)
+  }
 
+  // Load personal rooms whenever user changes
   useEffect(() => {
-    if (user) listRooms(user.user_id).then((r) => setRooms(r.rooms))
+    if (user) listRooms(user.user_id).then((r) => setRooms(r.rooms ?? []))
   }, [user])
 
+  async function doLogin(email) {
+    setLoggingIn(true)
+    setLoginError(null)
+    try {
+      const u = await login(email)
+      saveUser(u)
+      setUser(u)
+    } catch (err) {
+      setLoginError(err.message || String(err))
+    } finally {
+      setLoggingIn(false)
+    }
+  }
+
+  function handleLoginSubmit(e) {
+    e.preventDefault()
+    if (emailInput.trim()) doLogin(emailInput.trim())
+  }
+
+  function handleLogout() {
+    clearUser()
+    setUser(null)
+    setRooms([])
+  }
+
+  async function onDeleteRoom(room) {
+    if (!window.confirm(`Delete "${room.name}"? This cannot be undone.`)) return
+    try {
+      await deleteRoom(room.id)
+      if (activeRoom?.id === room.id) setActiveRoom(null)
+      const roomsData = await listRooms(user.user_id)
+      setRooms(roomsData.rooms ?? [])
+    } catch (err) {
+      alert(`Delete failed: ${err.message}`)
+    }
+  }
+
   async function onUpload() {
-    if (!user) {
-      if (loginError) {
-        alert(`Cannot upload: login failed (${loginError}). Check backend and VITE_API_BASE.`)
-      } else {
-        alert('Please wait for login to complete')
-      }
-      return
-    }
+    if (!user) { alert('Please sign in first'); return }
     const file = fileRef.current.files[0]
-    if (!file) {
-      alert('Pick a GLB file from Polycam')
-      return
-    }
+    if (!file) { alert('Pick a GLB / USDZ file'); return }
+    setUploading(true)
     try {
       const result = await createRoom(user.user_id, nameRef.current.value || 'My Room', file)
-      if (result.error) {
-        alert(`Upload failed: ${result.error}`)
-        return
-      }
-      // Clear the file input
+      if (result.error) { alert(`Upload failed: ${result.error}`); return }
       fileRef.current.value = ''
       nameRef.current.value = ''
-      // Refresh rooms list
       const roomsData = await listRooms(user.user_id)
-      setRooms(roomsData.rooms)
-      alert(`Room "${result.name}" uploaded successfully!`)
+      setRooms(roomsData.rooms ?? [])
+      alert(`Room "${result.name}" uploaded!`)
     } catch (error) {
-      console.error('Upload error:', error)
-      alert(`Upload failed: ${error.message}. Make sure the backend is running on ${import.meta.env.VITE_API_BASE || 'http://localhost:8000'}`)
+      alert(`Upload failed: ${error.message}`)
+    } finally {
+      setUploading(false)
     }
   }
 
   return (
     <div className="app">
-      <header>
-        <h1>Mentis – Memory Palace</h1>
+      <header className="hero-header">
+        <HeroBg />
+        <div className="hero-content">
+          <h1>Mentis</h1>
+          <p className="hero-subtitle">Your 3D Memory Palace</p>
+
+          {/* Auth bar */}
+          {user ? (
+            <div className="auth-bar">
+              <span className="auth-email">{user.email}</span>
+              <button className="auth-signout" onClick={handleLogout}>Sign out</button>
+            </div>
+          ) : (
+            <form className="login-form" onSubmit={handleLoginSubmit}>
+              <input
+                className="login-input"
+                type="email"
+                placeholder="your@email.com"
+                value={emailInput}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              <button className="login-btn" type="submit" disabled={loggingIn}>
+                {loggingIn ? 'Signing in…' : 'Sign in'}
+              </button>
+              <button
+                className="login-btn demo"
+                type="button"
+                disabled={loggingIn}
+                onClick={() => doLogin('demo@mentis.app')}
+              >
+                Try demo
+              </button>
+              {loginError && <p className="login-error">{loginError}</p>}
+            </form>
+          )}
+        </div>
       </header>
 
-      <section className="uploader">
-        <input ref={nameRef} placeholder="Room name" />
-        <input ref={fileRef} type="file" accept=".glb,.gltf,.obj,.usdz" />
-        <button onClick={onUpload}>Upload Room</button>
+      {/* ── Upload (signed-in users only) ── */}
+      {user && (
+        <section className="uploader">
+          <div className="uploader-field">
+            <label className="uploader-label">Room Name</label>
+            <input ref={nameRef} placeholder="e.g. My Living Room" />
+          </div>
+          <div className="uploader-field">
+            <label className="uploader-label">3D File (GLB / GLTF / USDZ)</label>
+            <input ref={fileRef} type="file" accept=".glb,.gltf,.obj,.usdz" />
+          </div>
+          <button onClick={onUpload} disabled={uploading}>
+            {uploading ? 'Uploading…' : 'Upload Room'}
+          </button>
+        </section>
+      )}
+
+      {/* ── My Rooms (signed-in) ── */}
+      {user && rooms.length > 0 && (
+        <section className="rooms">
+          <h2>My Rooms</h2>
+          <ul>
+            {rooms.map((r) => (
+              <li key={r.id} className="room-list-item">
+                <button onClick={() => selectRoom(r)}>{r.name}</button>
+                <button className="room-delete-btn" onClick={() => onDeleteRoom(r)} title="Delete room">×</button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* ── Demo Rooms (always visible) ── */}
+      <section className="demo-rooms">
+        <h2>Demo Rooms</h2>
+        {groupByCategory(DEMO_ROOMS).map(({ category, rooms: catRooms }) => (
+          <div key={category} className="demo-rooms-category">
+            <h3 className="demo-rooms-category-label">{category}</h3>
+            <div className="demo-rooms-grid">
+              {catRooms.map((room) => (
+                <div
+                  key={room.id}
+                  className={`demo-room-card${activeRoom?.id === room.id ? ' active' : ''}`}
+                  onClick={() => selectRoom(room)}
+                >
+                  <div className="demo-room-thumb">
+                    <iframe
+                      title={room.name}
+                      src={`https://sketchfab.com/models/${room.sketchfabId}/embed?autostart=0&ui_controls=0&ui_infos=0&ui_inspector=0&ui_watermark=0`}
+                      frameBorder="0"
+                      allowFullScreen
+                      allow="autoplay; fullscreen; xr-spatial-tracking"
+                      tabIndex="-1"
+                    />
+                    <div className="demo-room-overlay">
+                      <span>Open in Viewer</span>
+                    </div>
+                  </div>
+                  <div className="demo-room-info">
+                    <strong>{room.name}</strong>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
       </section>
 
-      <section className="rooms">
-        <ul>
-          {rooms.map((r) => (
-            <li key={r.id}>
-              <button onClick={() => setActiveRoom(r)}>{r.name}</button>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="viewer">
+      {/* ── Viewer ── */}
+      <section className="viewer" id="viewer-section">
         {activeRoom ? (
-          <RoomViewer
-            roomId={activeRoom.id}
-            glbUrl={roomGlbUrl(activeRoom.id)}
-          />
+          activeRoom.sketchfabId ? (
+            <SketchfabViewer key={activeRoom.id} modelId={activeRoom.sketchfabId} roomName={activeRoom.name} />
+          ) : (
+            <RoomViewer roomId={activeRoom.id} glbUrl={roomGlbUrl(activeRoom.id)} />
+          )
         ) : (
-          <p>Select a room to view</p>
+          <p>Select a room above to open it in the viewer</p>
         )}
       </section>
     </div>
