@@ -140,9 +140,10 @@ export default function RoomViewer({ roomId, glbUrl }) {
       if (axisFixed) roomMesh.rotation.x = Math.PI
 
       roomMesh.traverse((o) => {
-        if (o.isMesh) {
-          o.material.side = THREE.DoubleSide
-          if (o.material.map) o.material.map.anisotropy = 16
+        if (!o.isMesh) return
+        o.material.side = THREE.DoubleSide
+        if (o.material.map) {
+          o.material.map.anisotropy = renderer.capabilities.getMaxAnisotropy()
         }
       })
       scene.add(roomMesh)

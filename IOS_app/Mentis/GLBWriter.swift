@@ -2,7 +2,7 @@ import Foundation
 import UIKit
 
 /// Writes a binary glTF 2.0 (GLB) file from pre-built mesh data.
-/// Each mesh can carry its own photographic texture (embedded JPEG).
+/// Each mesh carries its own photographic JPEG texture and projective UV coordinates.
 enum GLBWriter {
 
     struct Mesh {
@@ -12,7 +12,7 @@ enum GLBWriter {
         var indices:     Data       // packed UInt32
         var vertexCount: Int
         var indexCount:  Int        // triangleCount × 3
-        var texture:     UIImage?
+        var texture:     UIImage?   // best camera frame for this anchor
         var minPos:      (Float, Float, Float)
         var maxPos:      (Float, Float, Float)
     }
@@ -22,10 +22,8 @@ enum GLBWriter {
     static func write(meshes: [Mesh], to url: URL) -> Bool {
         guard !meshes.isEmpty else { return false }
 
-        // ── 1. Build binary buffer ────────────────────────────────────────────
+        // ── 1. Build binary buffer ─────────────────────────────────────────────
         // Layout: [geom0-pos | geom0-norm | geom0-uv | geom0-idx | … | img0 | img1 | …]
-        // All chunks are 4-byte aligned.
-
         struct BVInfo { var offset: Int; var length: Int }
         var bvInfos = [BVInfo]()
         var bin     = Data()
@@ -38,10 +36,11 @@ enum GLBWriter {
             }
         }
 
+        // Embed JPEG textures after geometry
         var imgBVIdx = [Int?]()
         for mesh in meshes {
             if let img  = mesh.texture,
-               let jpeg = resized(img, maxDim: 2048)?.jpegData(compressionQuality: 0.70) {
+               let jpeg = resized(img, maxDim: 2048)?.jpegData(compressionQuality: 0.85) {
                 align4(&bin)
                 imgBVIdx.append(bvInfos.count)
                 bvInfos.append(BVInfo(offset: bin.count, length: jpeg.count))
@@ -52,8 +51,7 @@ enum GLBWriter {
         }
         align4(&bin)
 
-        // ── 2. Build glTF JSON ────────────────────────────────────────────────
-
+        // ── 2. Build glTF JSON ─────────────────────────────────────────────────
         var jNodes     = [[String: Any]]()
         var jMeshes    = [[String: Any]]()
         var jMaterials = [[String: Any]]()
@@ -71,7 +69,7 @@ enum GLBWriter {
 
             let geoBVStart = jBufViews.count
             let geoBVBase  = i * 4
-            let targets    = [34962, 34962, 34962, 34963]   // ARRAY_BUFFER / ELEMENT_ARRAY_BUFFER
+            let targets    = [34962, 34962, 34962, 34963]   // ARRAY/ELEMENT_ARRAY_BUFFER
 
             for j in 0..<4 {
                 let bv = bvInfos[geoBVBase + j]
@@ -82,23 +80,23 @@ enum GLBWriter {
             }
 
             let accBase = jAccessors.count
-            jAccessors.append([                                 // POSITION (min/max required by spec)
-                "bufferView":    geoBVStart,
-                "componentType": 5126, "count": mesh.vertexCount, "type": "VEC3",
+            jAccessors.append([                             // POSITION
+                "bufferView": geoBVStart, "componentType": 5126,
+                "count": mesh.vertexCount, "type": "VEC3",
                 "min": [mesh.minPos.0, mesh.minPos.1, mesh.minPos.2],
                 "max": [mesh.maxPos.0, mesh.maxPos.1, mesh.maxPos.2]
             ])
-            jAccessors.append([                                 // NORMAL
-                "bufferView":    geoBVStart + 1,
-                "componentType": 5126, "count": mesh.vertexCount, "type": "VEC3"
+            jAccessors.append([                             // NORMAL
+                "bufferView": geoBVStart + 1, "componentType": 5126,
+                "count": mesh.vertexCount, "type": "VEC3"
             ])
-            jAccessors.append([                                 // TEXCOORD_0
-                "bufferView":    geoBVStart + 2,
-                "componentType": 5126, "count": mesh.vertexCount, "type": "VEC2"
+            jAccessors.append([                             // TEXCOORD_0
+                "bufferView": geoBVStart + 2, "componentType": 5126,
+                "count": mesh.vertexCount, "type": "VEC2"
             ])
-            jAccessors.append([                                 // indices (UInt32)
-                "bufferView":    geoBVStart + 3,
-                "componentType": 5125, "count": mesh.indexCount, "type": "SCALAR"
+            jAccessors.append([                             // indices
+                "bufferView": geoBVStart + 3, "componentType": 5125,
+                "count": mesh.indexCount, "type": "SCALAR"
             ])
 
             let matIdx = jMaterials.count
@@ -155,26 +153,23 @@ enum GLBWriter {
 
         guard let rawJSON = try? JSONSerialization.data(withJSONObject: json) else { return false }
 
-        // Pad JSON chunk to 4-byte boundary with spaces (per spec)
         var jsonChunk = rawJSON
         while jsonChunk.count % 4 != 0 { jsonChunk.append(0x20) }
 
         // ── 3. Assemble GLB ───────────────────────────────────────────────────
-
         var glb = Data()
-        glb.append(contentsOf: [0x67, 0x6C, 0x54, 0x46])   // magic "glTF"
-        appendU32(&glb, 2)                                    // version
-        appendU32(&glb, 0)                                    // total length (filled below)
+        glb.append(contentsOf: [0x67, 0x6C, 0x54, 0x46])
+        appendU32(&glb, 2)
+        appendU32(&glb, 0)
 
         appendU32(&glb, UInt32(jsonChunk.count))
-        appendU32(&glb, 0x4E4F534A)                          // chunk type "JSON"
+        appendU32(&glb, 0x4E4F534A)
         glb.append(jsonChunk)
 
         appendU32(&glb, UInt32(bin.count))
-        appendU32(&glb, 0x004E4942)                          // chunk type "BIN\0"
+        appendU32(&glb, 0x004E4942)
         glb.append(bin)
 
-        // Patch total length at offset 8
         let totalLen = UInt32(glb.count)
         withUnsafeBytes(of: totalLen.littleEndian) { glb.replaceSubrange(8..<12, with: $0) }
 
@@ -193,8 +188,7 @@ enum GLBWriter {
         withUnsafeBytes(of: &le) { data.append(contentsOf: $0) }
     }
 
-    /// Down-scale the image so neither dimension exceeds maxDim, preserving aspect ratio.
-    private static func resized(_ image: UIImage, maxDim: CGFloat) -> UIImage? {
+    static func resized(_ image: UIImage, maxDim: CGFloat) -> UIImage? {
         let size = image.size
         guard size.width > 0, size.height > 0 else { return image }
         let scale = Swift.min(maxDim / size.width, maxDim / size.height, 1.0)

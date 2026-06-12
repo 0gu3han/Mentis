@@ -14,6 +14,7 @@ struct ScanView: View {
     @State private var finishRequested = false
     @State private var isProcessing    = false
     @State private var meshCount       = 0
+    @State private var meshProgress:   Double = 0
 
     // Photogrammetry state
     @State private var sampleDir:          URL?
@@ -72,22 +73,14 @@ struct ScanView: View {
                 }
 
                 HStack(spacing: 10) {
-                    Image(systemName: hasPhotogrammetry
-                          ? "camera.viewfinder"
-                          : hasLiDAR ? "sensor.tag.radiowaves.forward.fill" : "arkit")
-                        .foregroundStyle(hasPhotogrammetry
-                                         ? Color.mPrimary
-                                         : hasLiDAR ? Color.mSecondaryFixedDim : Color.mPrimary)
+                    Image(systemName: hasLiDAR ? "sensor.tag.radiowaves.forward.fill" : "arkit")
+                        .foregroundStyle(hasLiDAR ? Color.mSecondaryFixedDim : Color.mPrimary)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(hasPhotogrammetry
-                             ? "Photogrammetry"
-                             : hasLiDAR ? "3D Mesh Scan" : "AR Placement Mode")
+                        Text(hasLiDAR ? "3D Mesh Scan" : "AR Placement Mode")
                             .font(.mLabel(12)).tracking(0.3)
                             .foregroundStyle(Color.mOnSurface)
-                        Text(hasPhotogrammetry
-                             ? "LiDAR + iOS 17 — builds a fully-textured model (takes a few minutes on-device)"
-                             : hasLiDAR
-                             ? "LiDAR detected — captures a 3D mesh"
+                        Text(hasLiDAR
+                             ? "LiDAR detected — captures a real-color 3D mesh"
                              : "No LiDAR — place anchors in your real space using AR")
                             .font(.mLabel(11))
                             .foregroundStyle(Color.mSecondary)
@@ -101,9 +94,7 @@ struct ScanView: View {
             .padding(.horizontal, 24)
 
             MentisPrimaryButton(
-                title: hasPhotogrammetry ? "Start Capture"
-                     : hasLiDAR         ? "Start 3D Scan"
-                     :                    "Create Room",
+                title: hasLiDAR ? "Start 3D Scan" : "Create Room",
                 isLoading: false
             ) { startCreation() }
                 .disabled(roomName.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -188,17 +179,27 @@ struct ScanView: View {
             MeshScanRepresentable(
                 finishRequested: $finishRequested,
                 onMeshUpdated: { count in meshCount = count },
-                onExported: { url in Task { await upload(fileURL: url) } }
+                onProgress:    { p in meshProgress = p },
+                onExported:    { url in Task { await upload(fileURL: url) } }
             )
             .ignoresSafeArea()
 
             if isProcessing {
                 Color.mSurface.opacity(0.88).ignoresSafeArea()
                 VStack(spacing: 16) {
-                    ProgressView().tint(Color.mSecondaryFixedDim).scaleEffect(1.5)
-                    Text("Building 3D model…")
-                        .font(.mLabel()).tracking(0.5)
-                        .foregroundStyle(Color.mSecondary)
+                    if meshProgress > 0 {
+                        ProgressView(value: meshProgress)
+                            .tint(Color.mSecondaryFixedDim)
+                            .padding(.horizontal, 40)
+                        Text("Colorizing mesh… \(Int(meshProgress * 100))%")
+                            .font(.mLabel()).tracking(0.5)
+                            .foregroundStyle(Color.mSecondaryFixedDim)
+                    } else {
+                        ProgressView().tint(Color.mSecondaryFixedDim).scaleEffect(1.5)
+                        Text("Building 3D model…")
+                            .font(.mLabel()).tracking(0.5)
+                            .foregroundStyle(Color.mSecondary)
+                    }
                 }
             } else {
                 VStack(spacing: 10) {
@@ -223,7 +224,8 @@ struct ScanView: View {
                             .background(Color.mSurfaceContainerHigh.opacity(0.85), in: Capsule())
 
                         Button {
-                            isProcessing = true
+                            meshProgress    = 0
+                            isProcessing    = true
                             finishRequested = true
                         } label: {
                             Text("Finish Scan")
@@ -295,7 +297,9 @@ struct ScanView: View {
     // MARK: - Actions
 
     private func startCreation() {
-        if hasPhotogrammetry {
+        if hasLiDAR {
+            phase = .scanning
+        } else if hasPhotogrammetry {
             let dir = FileManager.default.temporaryDirectory
                 .appendingPathComponent(UUID().uuidString)
             try? FileManager.default.createDirectory(at: dir,
@@ -304,8 +308,6 @@ struct ScanView: View {
             frameCount         = 0
             processingProgress = 0
             phase              = .capturing
-        } else if hasLiDAR {
-            phase = .scanning
         } else {
             Task { await createVirtualRoom() }
         }
@@ -324,9 +326,10 @@ struct ScanView: View {
             config.featureSensitivity = .high
 
             let session = try PhotogrammetrySession(input: dir, configuration: config)
-            try session.process(requests: [
-                .modelFile(url: outputURL, detail: .full)
-            ])
+            let requests: [PhotogrammetrySession.Request] = [
+                .modelFile(url: outputURL, detail: .reduced)
+            ]
+            try session.process(requests: requests)
 
             for try await output in session.outputs {
                 switch output {
@@ -552,10 +555,13 @@ final class PhotogrammetryCaptureCoordinator: NSObject, ARSCNViewDelegate {
 struct MeshScanRepresentable: UIViewRepresentable {
     @Binding var finishRequested: Bool
     let onMeshUpdated: (Int) -> Void
-    let onExported: (URL) -> Void
+    let onProgress:    (Double) -> Void
+    let onExported:    (URL) -> Void
 
     func makeCoordinator() -> MeshScanCoordinator {
-        MeshScanCoordinator(onMeshUpdated: onMeshUpdated, onExported: onExported)
+        MeshScanCoordinator(onMeshUpdated: onMeshUpdated,
+                            onProgress:    onProgress,
+                            onExported:    onExported)
     }
 
     func makeUIView(context: Context) -> ARSCNView {
@@ -578,28 +584,33 @@ struct MeshScanRepresentable: UIViewRepresentable {
 
 // MARK: - Mesh Scan Coordinator
 
-private struct AnchorCapture {
+private struct CapturedFrame {
     let image:     UIImage
     let camera:    ARCamera
     let imageSize: CGSize
-    let score:     Int
 }
 
 final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
     private weak var sceneView: ARSCNView?
     private let onMeshUpdated: (Int) -> Void
+    private let onProgress:    (Double) -> Void
     private let onExported:    (URL) -> Void
     private var meshNodeCount = 0
     private var isExporting   = false
 
-    private let captureQueue  = DispatchQueue(label: "mentis.capture", qos: .utility)
-    private var bestCaptures: [UUID: AnchorCapture] = [:]
+    private let captureQueue    = DispatchQueue(label: "mentis.capture", qos: .utility)
+    private var capturedFrames: [CapturedFrame] = []
     private var lastSampleTime: TimeInterval = 0
     private let sampleInterval: TimeInterval = 0.5
-    private let ciContext = CIContext(options: [.useSoftwareRenderer: false])
+    // Software renderer is required when CIContext is used from a background queue;
+    // the GPU context is not safe to drive from non-main/render threads.
+    private let ciContext = CIContext(options: [.useSoftwareRenderer: true])
 
-    init(onMeshUpdated: @escaping (Int) -> Void, onExported: @escaping (URL) -> Void) {
+    init(onMeshUpdated: @escaping (Int) -> Void,
+         onProgress:    @escaping (Double) -> Void,
+         onExported:    @escaping (URL) -> Void) {
         self.onMeshUpdated = onMeshUpdated
+        self.onProgress    = onProgress
         self.onExported    = onExported
         super.init()
     }
@@ -615,66 +626,32 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
         view.session.run(config, options: [.resetTracking, .removeExistingAnchors])
     }
 
-    // MARK: - ARSCNViewDelegate — best-frame capture
+    // MARK: - ARSCNViewDelegate — lightweight frame accumulation
 
     func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
         guard time - lastSampleTime >= sampleInterval,
               let frame = sceneView?.session.currentFrame else { return }
         lastSampleTime = time
-        let meshAnchors = frame.anchors.compactMap { $0 as? ARMeshAnchor }
+
+        // Snapshot the pixel buffer and camera on the render thread; convert off it.
+        // No position-change gate — rotation-only scanning would starve the frame list.
         let pixelBuffer = frame.capturedImage
         let camera      = frame.camera
+        let imgW        = CVPixelBufferGetWidth(pixelBuffer)
+        let imgH        = CVPixelBufferGetHeight(pixelBuffer)
+
         captureQueue.async { [weak self] in
-            self?.updateBestCaptures(anchors: meshAnchors,
-                                     pixelBuffer: pixelBuffer,
-                                     camera: camera)
-        }
-    }
-
-    private func updateBestCaptures(anchors: [ARMeshAnchor],
-                                    pixelBuffer: CVPixelBuffer,
-                                    camera: ARCamera) {
-        let imgW     = CVPixelBufferGetWidth(pixelBuffer)
-        let imgH     = CVPixelBufferGetHeight(pixelBuffer)
-        let viewport = CGSize(width: imgW, height: imgH)
-        let camCol2  = camera.transform.columns.2
-        let camFwd   = SIMD3<Float>(-camCol2.x, -camCol2.y, -camCol2.z)
-
-        for anchor in anchors {
-            let g     = anchor.geometry
-            let count = g.vertices.count
-            let vPtr  = g.vertices.buffer.contents().advanced(by: g.vertices.offset)
-            let nPtr  = g.normals.buffer.contents().advanced(by: g.normals.offset)
-
-            var visible = 0
-            for i in 0..<count {
-                let local  = vPtr.advanced(by: i * g.vertices.stride)
-                                 .assumingMemoryBound(to: SIMD3<Float>.self).pointee
-                let normal = nPtr.advanced(by: i * g.normals.stride)
-                                 .assumingMemoryBound(to: SIMD3<Float>.self).pointee
-                let w4     = anchor.transform * SIMD4<Float>(local.x, local.y, local.z, 1)
-                let world  = SIMD3<Float>(w4.x, w4.y, w4.z)
-                let wN4    = anchor.transform * SIMD4<Float>(normal.x, normal.y, normal.z, 0)
-                let wNorm  = SIMD3<Float>(wN4.x, wN4.y, wN4.z)
-                guard simd_dot(wNorm, -camFwd) > 0.1 else { continue }
-                let pt = camera.projectPoint(world, orientation: .landscapeRight,
-                                             viewportSize: viewport)
-                if pt.x >= 0 && pt.x < CGFloat(imgW) && pt.y >= 0 && pt.y < CGFloat(imgH) {
-                    visible += 1
-                }
-            }
-
-            let existing = bestCaptures[anchor.identifier]?.score ?? -1
-            guard visible > existing else { continue }
-
+            guard let self else { return }
+            // Lock the pixel buffer while converting so ARKit can't reclaim it.
+            CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
+            defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly) }
             let ciImg = CIImage(cvPixelBuffer: pixelBuffer)
-            guard let cgImg = ciContext.createCGImage(ciImg, from: ciImg.extent) else { continue }
-            bestCaptures[anchor.identifier] = AnchorCapture(
+            guard let cgImg = self.ciContext.createCGImage(ciImg, from: ciImg.extent) else { return }
+            self.capturedFrames.append(CapturedFrame(
                 image:     UIImage(cgImage: cgImg),
                 camera:    camera,
-                imageSize: viewport,
-                score:     visible
-            )
+                imageSize: CGSize(width: imgW, height: imgH)
+            ))
         }
     }
 
@@ -705,14 +682,37 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
         let anchors = frame.anchors.compactMap { $0 as? ARMeshAnchor }
         guard !anchors.isEmpty else { return }
 
+        // Drain the capture queue to get all frames collected during the scan
+        var framesCopy: [CapturedFrame] = []
+        captureQueue.sync { framesCopy = capturedFrames }
+
+        // Fall back to the current frame if the scan was too short to accumulate any
+        if framesCopy.isEmpty {
+            let pb   = frame.capturedImage
+            let imgW = CVPixelBufferGetWidth(pb)
+            let imgH = CVPixelBufferGetHeight(pb)
+            let ci   = CIImage(cvPixelBuffer: pb)
+            if let cg = ciContext.createCGImage(ci, from: ci.extent) {
+                framesCopy = [CapturedFrame(
+                    image:     UIImage(cgImage: cg),
+                    camera:    frame.camera,
+                    imageSize: CGSize(width: imgW, height: imgH)
+                )]
+            }
+        }
+
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { return }
 
             var glbMeshes: [GLBWriter.Mesh] = []
-            for anchor in anchors {
-                if let mesh = self.buildGLBMesh(from: anchor, frame: frame) {
+            let total = anchors.count
+
+            for (idx, anchor) in anchors.enumerated() {
+                if let mesh = self.buildGLBMesh(from: anchor, frames: framesCopy) {
                     glbMeshes.append(mesh)
                 }
+                let progress = Double(idx + 1) / Double(total)
+                DispatchQueue.main.async { self.onProgress(progress) }
             }
 
             let url = FileManager.default.temporaryDirectory
@@ -752,32 +752,70 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
         return geo
     }
 
-    private func makeSingleCapture(from frame: ARFrame) -> AnchorCapture? {
-        let pb   = frame.capturedImage
-        let imgW = CVPixelBufferGetWidth(pb)
-        let imgH = CVPixelBufferGetHeight(pb)
-        let ci   = CIImage(cvPixelBuffer: pb)
-        guard let cg = ciContext.createCGImage(ci, from: ci.extent) else { return nil }
-        return AnchorCapture(
-            image:     UIImage(cgImage: cg),
-            camera:    frame.camera,
-            imageSize: CGSize(width: imgW, height: imgH),
-            score:     0
-        )
-    }
-
-    private func buildGLBMesh(from anchor: ARMeshAnchor, frame: ARFrame) -> GLBWriter.Mesh? {
-        var capture: AnchorCapture?
-        captureQueue.sync { capture = bestCaptures[anchor.identifier] }
-        if capture == nil { capture = makeSingleCapture(from: frame) }
-
+    /// Build a textured GLB mesh for one ARMeshAnchor.
+    ///
+    /// For each anchor we select the single captured frame where the surface is most
+    /// face-on to the camera AND the projected points are closest to the image centre.
+    /// Every vertex is then projected onto that frame to get UV coordinates, and the
+    /// full-resolution frame image is embedded as a JPEG texture.  This gives photo-
+    /// quality colour resolution (~1 mm at 2 m) instead of the ~10 cm resolution
+    /// of per-vertex colour.
+    private func buildGLBMesh(from anchor: ARMeshAnchor,
+                               frames: [CapturedFrame]) -> GLBWriter.Mesh? {
         let g     = anchor.geometry
         let count = g.vertices.count
-        guard count > 0 else { return nil }
+        guard count > 0, !frames.isEmpty else { return nil }
 
         let vPtr = g.vertices.buffer.contents().advanced(by: g.vertices.offset)
         let nPtr = g.normals.buffer.contents().advanced(by: g.normals.offset)
 
+        // ── Step 1: pick the best frame for this anchor ───────────────────────
+        // Sample ~30 vertices evenly to score each frame efficiently.
+        let step = max(1, count / 30)
+
+        var bestFrame: CapturedFrame? = nil
+        var bestScore: Float = 0
+
+        for f in frames {
+            let col2 = f.camera.transform.columns.2
+            var score: Float = 0
+            var hits  = 0
+
+            for i in stride(from: 0, to: count, by: step) {
+                let local  = vPtr.advanced(by: i * g.vertices.stride)
+                                 .assumingMemoryBound(to: SIMD3<Float>.self).pointee
+                let normal = nPtr.advanced(by: i * g.normals.stride)
+                                 .assumingMemoryBound(to: SIMD3<Float>.self).pointee
+                let w4    = anchor.transform * SIMD4<Float>(local.x, local.y, local.z, 1)
+                let wN4   = anchor.transform * SIMD4<Float>(normal.x, normal.y, normal.z, 0)
+                let world = SIMD3<Float>(w4.x, w4.y, w4.z)
+                let wNorm = normalize(SIMD3<Float>(wN4.x, wN4.y, wN4.z))
+
+                let dot = simd_dot(wNorm, SIMD3<Float>(col2.x, col2.y, col2.z))
+                guard dot > 0.1 else { continue }
+
+                let pt = f.camera.projectPoint(world, orientation: .landscapeRight,
+                                               viewportSize: f.imageSize)
+                guard pt.x >= 0, pt.x < f.imageSize.width,
+                      pt.y >= 0, pt.y < f.imageSize.height else { continue }
+
+                let cx   = f.imageSize.width  / 2
+                let cy   = f.imageSize.height / 2
+                let maxR = sqrt(cx * cx + cy * cy)
+                let dist = sqrt(pow(pt.x - cx, 2) + pow(pt.y - cy, 2))
+                score += dot * Float(1.0 - 0.3 * dist / maxR)
+                hits  += 1
+            }
+
+            if hits > 0 && score > bestScore {
+                bestScore = score
+                bestFrame = f
+            }
+        }
+
+        guard let frame = bestFrame else { return nil }
+
+        // ── Step 2: project all vertices onto that frame → UV ─────────────────
         var posRaw  = [Float](); posRaw.reserveCapacity(count * 3)
         var normRaw = [Float](); normRaw.reserveCapacity(count * 3)
         var uvRaw   = [Float](); uvRaw.reserveCapacity(count * 2)
@@ -794,8 +832,8 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
             let world = SIMD3<Float>(w4.x, w4.y, w4.z)
             let wNorm = normalize(SIMD3<Float>(wN4.x, wN4.y, wN4.z))
 
-            posRaw.append(contentsOf:  [world.x,  world.y,  world.z])
-            normRaw.append(contentsOf: [wNorm.x,  wNorm.y,  wNorm.z])
+            posRaw.append(contentsOf:  [world.x, world.y, world.z])
+            normRaw.append(contentsOf: [wNorm.x, wNorm.y, wNorm.z])
             minPos = SIMD3<Float>(Swift.min(minPos.x, world.x),
                                   Swift.min(minPos.y, world.y),
                                   Swift.min(minPos.z, world.z))
@@ -803,17 +841,18 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
                                   Swift.max(maxPos.y, world.y),
                                   Swift.max(maxPos.z, world.z))
 
-            if let cap = capture {
-                let pt = cap.camera.projectPoint(world, orientation: .landscapeRight,
-                                                 viewportSize: cap.imageSize)
-                let u = Float(pt.x / cap.imageSize.width)
-                let v = Float(1.0 - pt.y / cap.imageSize.height)
-                uvRaw.append(contentsOf: [min(1, max(0, u)), min(1, max(0, v))])
-            } else {
-                uvRaw.append(contentsOf: [0, 0])
-            }
+            // projectPoint returns screen (x, y) where y=0 is at the TOP.
+            // glTF UV convention: U=0 left→right, V=0 at TOP (same as image row 0).
+            // Three.js GLTFLoader sets texture.flipY=false, so V=0 samples row 0
+            // of the JPEG — which is also the top of the image. No V-flip needed.
+            let pt = frame.camera.projectPoint(world, orientation: .landscapeRight,
+                                               viewportSize: frame.imageSize)
+            let u = Float(pt.x / frame.imageSize.width)
+            let v = Float(pt.y / frame.imageSize.height)
+            uvRaw.append(contentsOf: [min(1, max(0, u)), min(1, max(0, v))])
         }
 
+        // ── Step 3: indices ───────────────────────────────────────────────────
         let faceCount = g.faces.count
         var idxRaw = [UInt32](); idxRaw.reserveCapacity(faceCount * 3)
         let facePtr = g.faces.buffer.contents()
@@ -829,12 +868,12 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
 
         return GLBWriter.Mesh(
             positions:   posRaw.withUnsafeBytes  { Data($0) },
-            normals:     normRaw.withUnsafeBytes { Data($0) },
-            uvs:         uvRaw.withUnsafeBytes   { Data($0) },
-            indices:     idxRaw.withUnsafeBytes  { Data($0) },
+            normals:     normRaw.withUnsafeBytes  { Data($0) },
+            uvs:         uvRaw.withUnsafeBytes    { Data($0) },
+            indices:     idxRaw.withUnsafeBytes   { Data($0) },
             vertexCount: count,
             indexCount:  faceCount * 3,
-            texture:     capture?.image,
+            texture:     frame.image,
             minPos:      (minPos.x, minPos.y, minPos.z),
             maxPos:      (maxPos.x, maxPos.y, maxPos.z)
         )
