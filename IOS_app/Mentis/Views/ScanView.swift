@@ -15,6 +15,20 @@ struct ScanView: View {
     @State private var isProcessing    = false
     @State private var meshCount       = 0
     @State private var meshProgress:   Double = 0
+    @State private var scanStartTime:  Date?
+    @State private var scanElapsed:    Double = 0
+    @State private var scanTipIndex:   Int = 0
+    @State private var tipTimer:       Timer? = nil
+
+    private static let scanTips = [
+        "Move slowly around the entire room",
+        "Get within 30 cm of books, screens, and objects on tables",
+        "Tilt phone sideways to capture vertical faces of objects",
+        "Scan from below shelf level to capture object sides",
+        "Cover all walls, corners, and furniture surfaces",
+        "Revisit objects — closer pass = denser mesh",
+    ]
+    private let minScanSeconds: Double = 20
 
     // Photogrammetry state
     @State private var sampleDir:          URL?
@@ -174,6 +188,8 @@ struct ScanView: View {
 
     // MARK: - Scanning (ARKit mesh — fallback)
 
+    private var canFinishScan: Bool { scanElapsed >= minScanSeconds }
+
     private var scanningView: some View {
         ZStack(alignment: .bottom) {
             MeshScanRepresentable(
@@ -183,6 +199,19 @@ struct ScanView: View {
                 onExported:    { url in Task { await upload(fileURL: url) } }
             )
             .ignoresSafeArea()
+            .onAppear {
+                scanStartTime = Date()
+                scanElapsed   = 0
+                tipTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+                    scanElapsed = Date().timeIntervalSince(scanStartTime ?? Date())
+                    if Int(scanElapsed) % 4 == 0 {
+                        withAnimation(.easeInOut(duration: 0.35)) {
+                            scanTipIndex = (scanTipIndex + 1) % ScanView.scanTips.count
+                        }
+                    }
+                }
+            }
+            .onDisappear { tipTimer?.invalidate(); tipTimer = nil }
 
             if isProcessing {
                 Color.mSurface.opacity(0.88).ignoresSafeArea()
@@ -217,11 +246,13 @@ struct ScanView: View {
                     }
 
                     HStack(spacing: 12) {
-                        Text("Move slowly around the room")
+                        Text(ScanView.scanTips[scanTipIndex])
                             .font(.mLabel(12))
                             .foregroundStyle(Color.mOnSurface)
                             .padding(.horizontal, 14).padding(.vertical, 10)
                             .background(Color.mSurfaceContainerHigh.opacity(0.85), in: Capsule())
+                            .transition(.opacity)
+                            .id(scanTipIndex)
 
                         Button {
                             meshProgress    = 0
@@ -232,8 +263,16 @@ struct ScanView: View {
                                 .font(.mLabel(13)).tracking(0.3)
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, 20).padding(.vertical, 10)
-                                .background(.mGradient, in: Capsule())
+                                .background(canFinishScan ? AnyShapeStyle(.mGradient) : AnyShapeStyle(Color.mSecondary.opacity(0.4)), in: Capsule())
                         }
+                        .disabled(!canFinishScan)
+                    }
+
+                    if !canFinishScan {
+                        let remaining = Int(minScanSeconds - scanElapsed)
+                        Text("Keep scanning… \(remaining)s")
+                            .font(.mLabel(10)).tracking(0.3)
+                            .foregroundStyle(Color.mOutlineVariant)
                     }
                 }
                 .padding(.bottom, 52)
@@ -622,7 +661,10 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
 
         let config = ARWorldTrackingConfiguration()
         config.planeDetection      = [.horizontal, .vertical]
-        config.sceneReconstruction = .mesh
+        // meshWithClassification uses Apple's on-device ML to segment surfaces;
+        // it typically produces denser geometry around detected object classes
+        // (chairs, tables, etc.) compared to plain .mesh.
+        config.sceneReconstruction = .meshWithClassification
         view.session.run(config, options: [.resetTracking, .removeExistingAnchors])
     }
 
