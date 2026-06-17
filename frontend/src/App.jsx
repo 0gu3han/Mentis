@@ -200,14 +200,32 @@ export default function App() {
       {user && rooms.length > 0 && (
         <section className="rooms">
           <h2>My Rooms</h2>
-          <ul>
+          <div className="rooms-grid">
             {rooms.map((r) => (
-              <li key={r.id} className="room-list-item">
-                <button onClick={() => selectRoom(r)}>{r.name}</button>
-                <button className="room-delete-btn" onClick={() => onDeleteRoom(r)} title="Delete room">×</button>
-              </li>
+              <div
+                key={r.id}
+                className={`room-card${activeRoom?.id === r.id ? ' active' : ''}`}
+                onClick={() => selectRoom(r)}
+              >
+                <div className="room-card-header">
+                  <strong>{r.name}</strong>
+                  <button
+                    className="room-delete-btn"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onDeleteRoom(r)
+                    }}
+                    title="Delete room"
+                  >
+                    ×
+                  </button>
+                </div>
+                <div className="room-card-action">
+                  <span>Open in Viewer</span>
+                </div>
+              </div>
             ))}
-          </ul>
+          </div>
         </section>
       )}
 
