@@ -640,7 +640,8 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
     private let captureQueue    = DispatchQueue(label: "mentis.capture", qos: .utility)
     private var capturedFrames: [CapturedFrame] = []
     private var lastSampleTime: TimeInterval = 0
-    private let sampleInterval: TimeInterval = 0.5
+    private let sampleInterval: TimeInterval = 0.25  // 4 fps — more frames = better surface coverage
+    private let maxFrames = 80                        // reservoir cap to bound memory (~880 MB uncompressed)
     // Software renderer is required when CIContext is used from a background queue;
     // the GPU context is not safe to drive from non-main/render threads.
     private let ciContext = CIContext(options: [.useSoftwareRenderer: true])
@@ -689,11 +690,19 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
             defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly) }
             let ciImg = CIImage(cvPixelBuffer: pixelBuffer)
             guard let cgImg = self.ciContext.createCGImage(ciImg, from: ciImg.extent) else { return }
-            self.capturedFrames.append(CapturedFrame(
+            let newFrame = CapturedFrame(
                 image:     UIImage(cgImage: cgImg),
                 camera:    camera,
                 imageSize: CGSize(width: imgW, height: imgH)
-            ))
+            )
+            // Reservoir sampling: once at capacity, replace a random older frame
+            // so all time periods of the scan remain equally represented.
+            if self.capturedFrames.count >= self.maxFrames {
+                let slot = Int.random(in: 0..<self.maxFrames)
+                self.capturedFrames[slot] = newFrame
+            } else {
+                self.capturedFrames.append(newFrame)
+            }
         }
     }
 
@@ -750,9 +759,8 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
             let total = anchors.count
 
             for (idx, anchor) in anchors.enumerated() {
-                if let mesh = self.buildGLBMesh(from: anchor, frames: framesCopy) {
-                    glbMeshes.append(mesh)
-                }
+                let meshes = self.buildGLBMeshes(from: anchor, frames: framesCopy)
+                glbMeshes.append(contentsOf: meshes)
                 let progress = Double(idx + 1) / Double(total)
                 DispatchQueue.main.async { self.onProgress(progress) }
             }
@@ -794,99 +802,129 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
         return geo
     }
 
-    /// Build a textured GLB mesh for one ARMeshAnchor.
+    /// Build textured GLB meshes for one ARMeshAnchor.
     ///
-    /// For each anchor we select the single captured frame where the surface is most
-    /// face-on to the camera AND the projected points are closest to the image centre.
-    /// Every vertex is then projected onto that frame to get UV coordinates, and the
-    /// full-resolution frame image is embedded as a JPEG texture.  This gives photo-
-    /// quality colour resolution (~1 mm at 2 m) instead of the ~10 cm resolution
-    /// of per-vertex colour.
-    private func buildGLBMesh(from anchor: ARMeshAnchor,
-                               frames: [CapturedFrame]) -> GLBWriter.Mesh? {
-        let g     = anchor.geometry
-        let count = g.vertices.count
-        guard count > 0, !frames.isEmpty else { return nil }
+    /// Splits each anchor's faces into two orientation groups before frame selection:
+    ///   • Horizontal (|ny| > 0.6): floors, table-tops, tops of objects
+    ///   • Vertical   (|ny| ≤ 0.6): walls, laptop screens, book spines, object sides
+    ///
+    /// Each group independently selects the captured frame where those specific faces
+    /// were most face-on to the camera.  A desk anchor therefore uses a top-down frame
+    /// for the desk surface AND a frontal frame for the laptop sitting on it —
+    /// rather than forcing both to share the same (usually top-down) frame.
+    private func buildGLBMeshes(from anchor: ARMeshAnchor,
+                                 frames: [CapturedFrame]) -> [GLBWriter.Mesh] {
+        let g      = anchor.geometry
+        let vCount = g.vertices.count
+        let fCount = g.faces.count
+        guard vCount > 0, fCount > 0, !frames.isEmpty else { return [] }
 
         let vPtr = g.vertices.buffer.contents().advanced(by: g.vertices.offset)
         let nPtr = g.normals.buffer.contents().advanced(by: g.normals.offset)
+        let fPtr = g.faces.buffer.contents()
 
-        // ── Step 1: pick the best frame for this anchor ───────────────────────
-        // Sample ~30 vertices evenly to score each frame efficiently.
-        let step = max(1, count / 30)
+        // ── 1. Read all indices ───────────────────────────────────────────────
+        var allIdx = [Int](); allIdx.reserveCapacity(fCount * 3)
+        for j in 0..<(fCount * 3) {
+            if g.faces.bytesPerIndex == 4 {
+                allIdx.append(Int(fPtr.advanced(by: j * 4)
+                    .assumingMemoryBound(to: UInt32.self).pointee))
+            } else {
+                allIdx.append(Int(fPtr.advanced(by: j * 2)
+                    .assumingMemoryBound(to: UInt16.self).pointee))
+            }
+        }
 
-        var bestFrame: CapturedFrame? = nil
+        // ── 2. Read all world-space positions and normals ─────────────────────
+        var wPos  = [SIMD3<Float>](repeating: .zero, count: vCount)
+        var wNorm = [SIMD3<Float>](repeating: .zero, count: vCount)
+        for i in 0..<vCount {
+            let lv = vPtr.advanced(by: i * g.vertices.stride)
+                         .assumingMemoryBound(to: SIMD3<Float>.self).pointee
+            let ln = nPtr.advanced(by: i * g.normals.stride)
+                         .assumingMemoryBound(to: SIMD3<Float>.self).pointee
+            let w4 = anchor.transform * SIMD4<Float>(lv.x, lv.y, lv.z, 1)
+            let n4 = anchor.transform * SIMD4<Float>(ln.x, ln.y, ln.z, 0)
+            wPos[i]  = SIMD3<Float>(w4.x, w4.y, w4.z)
+            wNorm[i] = normalize(SIMD3<Float>(n4.x, n4.y, n4.z))
+        }
+
+        // ── 3. Partition faces by orientation ─────────────────────────────────
+        // A face is "horizontal" when its average world-normal is mostly vertical (|ny|>0.6).
+        // Vertical faces are everything else: walls, screens, book spines, object sides.
+        var horizFaces = [(Int, Int, Int)]()
+        var vertFaces  = [(Int, Int, Int)]()
+        for f in 0..<fCount {
+            let i0 = allIdx[f * 3]; let i1 = allIdx[f * 3 + 1]; let i2 = allIdx[f * 3 + 2]
+            let avgNY = abs((wNorm[i0].y + wNorm[i1].y + wNorm[i2].y) / 3.0)
+            if avgNY > 0.6 { horizFaces.append((i0, i1, i2)) }
+            else            { vertFaces.append((i0, i1, i2)) }
+        }
+
+        // ── 4. Build a GLBWriter.Mesh for each non-empty group ────────────────
+        var result = [GLBWriter.Mesh]()
+        for faceGroup in [horizFaces, vertFaces] where !faceGroup.isEmpty {
+            if let mesh = buildMeshSubset(worldPos: wPos, worldNorm: wNorm,
+                                          faceTriples: faceGroup, frames: frames) {
+                result.append(mesh)
+            }
+        }
+        return result
+    }
+
+    /// Build one GLBWriter.Mesh for a subset of faces (already in world space).
+    /// Independently picks the best-fit frame for only this subset's vertices.
+    private func buildMeshSubset(worldPos:   [SIMD3<Float>],
+                                  worldNorm:  [SIMD3<Float>],
+                                  faceTriples: [(Int, Int, Int)],
+                                  frames:     [CapturedFrame]) -> GLBWriter.Mesh? {
+        // Collect the unique vertex indices used by this face group
+        var usedSet = Set<Int>()
+        for (i0, i1, i2) in faceTriples { usedSet.insert(i0); usedSet.insert(i1); usedSet.insert(i2) }
+        let usedVerts = usedSet.sorted()
+        let remap = Dictionary(uniqueKeysWithValues: usedVerts.enumerated().map { ($1, $0) })
+
+        // ── Best frame for this subset ────────────────────────────────────────
+        let step = max(1, usedVerts.count / 30)
+        var bestFrame: CapturedFrame?
         var bestScore: Float = 0
 
         for f in frames {
             let col2 = f.camera.transform.columns.2
             var score: Float = 0
             var hits  = 0
-
-            for i in stride(from: 0, to: count, by: step) {
-                let local  = vPtr.advanced(by: i * g.vertices.stride)
-                                 .assumingMemoryBound(to: SIMD3<Float>.self).pointee
-                let normal = nPtr.advanced(by: i * g.normals.stride)
-                                 .assumingMemoryBound(to: SIMD3<Float>.self).pointee
-                let w4    = anchor.transform * SIMD4<Float>(local.x, local.y, local.z, 1)
-                let wN4   = anchor.transform * SIMD4<Float>(normal.x, normal.y, normal.z, 0)
-                let world = SIMD3<Float>(w4.x, w4.y, w4.z)
-                let wNorm = normalize(SIMD3<Float>(wN4.x, wN4.y, wN4.z))
-
-                let dot = simd_dot(wNorm, SIMD3<Float>(col2.x, col2.y, col2.z))
+            for (si, vi) in usedVerts.enumerated() where si % step == 0 {
+                let wNrm = worldNorm[vi]
+                let dot  = simd_dot(wNrm, SIMD3<Float>(col2.x, col2.y, col2.z))
                 guard dot > 0.1 else { continue }
-
-                let pt = f.camera.projectPoint(world, orientation: .landscapeRight,
+                let pt = f.camera.projectPoint(worldPos[vi], orientation: .landscapeRight,
                                                viewportSize: f.imageSize)
                 guard pt.x >= 0, pt.x < f.imageSize.width,
                       pt.y >= 0, pt.y < f.imageSize.height else { continue }
-
-                let cx   = f.imageSize.width  / 2
-                let cy   = f.imageSize.height / 2
+                let cx = f.imageSize.width / 2; let cy = f.imageSize.height / 2
                 let maxR = sqrt(cx * cx + cy * cy)
                 let dist = sqrt(pow(pt.x - cx, 2) + pow(pt.y - cy, 2))
                 score += dot * Float(1.0 - 0.3 * dist / maxR)
                 hits  += 1
             }
-
-            if hits > 0 && score > bestScore {
-                bestScore = score
-                bestFrame = f
-            }
+            if hits > 0 && score > bestScore { bestScore = score; bestFrame = f }
         }
-
         guard let frame = bestFrame else { return nil }
 
-        // ── Step 2: project all vertices onto that frame → UV ─────────────────
-        var posRaw  = [Float](); posRaw.reserveCapacity(count * 3)
-        var normRaw = [Float](); normRaw.reserveCapacity(count * 3)
-        var uvRaw   = [Float](); uvRaw.reserveCapacity(count * 2)
+        // ── Build packed arrays for this vertex subset ────────────────────────
+        var posRaw  = [Float](); posRaw.reserveCapacity(usedVerts.count * 3)
+        var normRaw = [Float](); normRaw.reserveCapacity(usedVerts.count * 3)
+        var uvRaw   = [Float](); uvRaw.reserveCapacity(usedVerts.count * 2)
         var minPos  = SIMD3<Float>( Float.infinity,  Float.infinity,  Float.infinity)
         var maxPos  = SIMD3<Float>(-Float.infinity, -Float.infinity, -Float.infinity)
 
-        for i in 0..<count {
-            let local  = vPtr.advanced(by: i * g.vertices.stride)
-                             .assumingMemoryBound(to: SIMD3<Float>.self).pointee
-            let normal = nPtr.advanced(by: i * g.normals.stride)
-                             .assumingMemoryBound(to: SIMD3<Float>.self).pointee
-            let w4    = anchor.transform * SIMD4<Float>(local.x,  local.y,  local.z,  1)
-            let wN4   = anchor.transform * SIMD4<Float>(normal.x, normal.y, normal.z, 0)
-            let world = SIMD3<Float>(w4.x, w4.y, w4.z)
-            let wNorm = normalize(SIMD3<Float>(wN4.x, wN4.y, wN4.z))
-
+        for vi in usedVerts {
+            let world = worldPos[vi]; let wNrm = worldNorm[vi]
             posRaw.append(contentsOf:  [world.x, world.y, world.z])
-            normRaw.append(contentsOf: [wNorm.x, wNorm.y, wNorm.z])
-            minPos = SIMD3<Float>(Swift.min(minPos.x, world.x),
-                                  Swift.min(minPos.y, world.y),
-                                  Swift.min(minPos.z, world.z))
-            maxPos = SIMD3<Float>(Swift.max(maxPos.x, world.x),
-                                  Swift.max(maxPos.y, world.y),
-                                  Swift.max(maxPos.z, world.z))
-
-            // projectPoint returns screen (x, y) where y=0 is at the TOP.
-            // glTF UV convention: U=0 left→right, V=0 at TOP (same as image row 0).
-            // Three.js GLTFLoader sets texture.flipY=false, so V=0 samples row 0
-            // of the JPEG — which is also the top of the image. No V-flip needed.
+            normRaw.append(contentsOf: [wNrm.x,  wNrm.y,  wNrm.z])
+            minPos = SIMD3<Float>(Swift.min(minPos.x, world.x), Swift.min(minPos.y, world.y), Swift.min(minPos.z, world.z))
+            maxPos = SIMD3<Float>(Swift.max(maxPos.x, world.x), Swift.max(maxPos.y, world.y), Swift.max(maxPos.z, world.z))
+            // projectPoint: y=0 at top of image; glTF V=0 also at top → no flip needed
             let pt = frame.camera.projectPoint(world, orientation: .landscapeRight,
                                                viewportSize: frame.imageSize)
             let u = Float(pt.x / frame.imageSize.width)
@@ -894,18 +932,11 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
             uvRaw.append(contentsOf: [min(1, max(0, u)), min(1, max(0, v))])
         }
 
-        // ── Step 3: indices ───────────────────────────────────────────────────
-        let faceCount = g.faces.count
-        var idxRaw = [UInt32](); idxRaw.reserveCapacity(faceCount * 3)
-        let facePtr = g.faces.buffer.contents()
-        for j in 0..<(faceCount * 3) {
-            if g.faces.bytesPerIndex == 4 {
-                idxRaw.append(facePtr.advanced(by: j * 4)
-                    .assumingMemoryBound(to: UInt32.self).pointee)
-            } else {
-                idxRaw.append(UInt32(facePtr.advanced(by: j * 2)
-                    .assumingMemoryBound(to: UInt16.self).pointee))
-            }
+        var idxRaw = [UInt32](); idxRaw.reserveCapacity(faceTriples.count * 3)
+        for (i0, i1, i2) in faceTriples {
+            idxRaw.append(UInt32(remap[i0]!))
+            idxRaw.append(UInt32(remap[i1]!))
+            idxRaw.append(UInt32(remap[i2]!))
         }
 
         return GLBWriter.Mesh(
@@ -913,8 +944,8 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
             normals:     normRaw.withUnsafeBytes  { Data($0) },
             uvs:         uvRaw.withUnsafeBytes    { Data($0) },
             indices:     idxRaw.withUnsafeBytes   { Data($0) },
-            vertexCount: count,
-            indexCount:  faceCount * 3,
+            vertexCount: usedVerts.count,
+            indexCount:  faceTriples.count * 3,
             texture:     frame.image,
             minPos:      (minPos.x, minPos.y, minPos.z),
             maxPos:      (maxPos.x, maxPos.y, maxPos.z)

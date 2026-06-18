@@ -40,7 +40,7 @@ enum GLBWriter {
         var imgBVIdx = [Int?]()
         for mesh in meshes {
             if let img  = mesh.texture,
-               let jpeg = resized(img, maxDim: 2048)?.jpegData(compressionQuality: 0.85) {
+               let jpeg = resized(img, maxDim: 2048)?.jpegData(compressionQuality: 0.92) {
                 align4(&bin)
                 imgBVIdx.append(bvInfos.count)
                 bvInfos.append(BVInfo(offset: bin.count, length: jpeg.count))
