@@ -1014,7 +1014,60 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
                 results.append(mesh)
             }
         }
+
+        // Any faces that no captured frame could cover (never scanned from a good angle)
+        // are rendered as solid gray instead of being dropped or having their UVs clamped
+        // to a photo edge and stretched across the triangle.
+        if !remaining.isEmpty {
+            let uncoveredFaces = remaining.map { faces[$0] }
+            if let grayMesh = buildGrayMesh(wPos: wPos, wNorm: wNorm, faces: uncoveredFaces) {
+                results.append(grayMesh)
+            }
+        }
+
         return results
+    }
+
+    /// Builds a GLBWriter.Mesh with no texture (gray material) for faces that
+    /// were never seen from a usable angle in any captured frame.
+    private func buildGrayMesh(wPos: [SIMD3<Float>], wNorm: [SIMD3<Float>],
+                                faces: [(Int, Int, Int)]) -> GLBWriter.Mesh? {
+        var usedSet = Set<Int>()
+        for (i0, i1, i2) in faces { usedSet.insert(i0); usedSet.insert(i1); usedSet.insert(i2) }
+        let usedVerts = usedSet.sorted()
+        guard !usedVerts.isEmpty else { return nil }
+        let remap = Dictionary(uniqueKeysWithValues: usedVerts.enumerated().map { ($1, $0) })
+
+        var posRaw  = [Float](); posRaw.reserveCapacity(usedVerts.count * 3)
+        var normRaw = [Float](); normRaw.reserveCapacity(usedVerts.count * 3)
+        var uvRaw   = [Float](repeating: 0, count: usedVerts.count * 2)  // dummy UVs — no texture
+        var minPos  = SIMD3<Float>( Float.infinity,  Float.infinity,  Float.infinity)
+        var maxPos  = SIMD3<Float>(-Float.infinity, -Float.infinity, -Float.infinity)
+
+        for vi in usedVerts {
+            let world = wPos[vi]; let wNrm = wNorm[vi]
+            posRaw.append(contentsOf: [world.x, world.y, world.z])
+            normRaw.append(contentsOf: [wNrm.x, wNrm.y, wNrm.z])
+            minPos = SIMD3<Float>(Swift.min(minPos.x,world.x), Swift.min(minPos.y,world.y), Swift.min(minPos.z,world.z))
+            maxPos = SIMD3<Float>(Swift.max(maxPos.x,world.x), Swift.max(maxPos.y,world.y), Swift.max(maxPos.z,world.z))
+        }
+
+        var idxRaw = [UInt32](); idxRaw.reserveCapacity(faces.count * 3)
+        for (i0, i1, i2) in faces {
+            idxRaw.append(UInt32(remap[i0]!)); idxRaw.append(UInt32(remap[i1]!)); idxRaw.append(UInt32(remap[i2]!))
+        }
+
+        return GLBWriter.Mesh(
+            positions:   posRaw.withUnsafeBytes  { Data($0) },
+            normals:     normRaw.withUnsafeBytes  { Data($0) },
+            uvs:         uvRaw.withUnsafeBytes    { Data($0) },
+            indices:     idxRaw.withUnsafeBytes   { Data($0) },
+            vertexCount: usedVerts.count,
+            indexCount:  faces.count * 3,
+            texture:     nil,   // → GLBWriter uses baseColorFactor [0.55, 0.57, 0.62] gray
+            minPos:      (minPos.x, minPos.y, minPos.z),
+            maxPos:      (maxPos.x, maxPos.y, maxPos.z)
+        )
     }
 
     /// Build one GLBWriter.Mesh from a pre-validated set of faces + their assigned frame.
