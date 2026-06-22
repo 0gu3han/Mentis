@@ -987,7 +987,7 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
         var remaining = Array(0..<faces.count)   // indices into faces[]
         var results   = [GLBWriter.Mesh]()
 
-        for _ in 0..<4 where !remaining.isEmpty {
+        for _ in 0..<1 where !remaining.isEmpty {
             // Find the frame that makes the most remaining faces fully visible
             var bestFi = -1
             var bestCovered = [Int]()
