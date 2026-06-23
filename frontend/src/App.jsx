@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Routes, Route, Link } from 'react-router-dom'
+import { Routes, Route, Link, useNavigate } from 'react-router-dom'
 import { login, listRooms, roomGlbUrl, deleteRoom } from './api'
 import RoomViewer from './RoomViewer'
 import SketchfabViewer from './SketchfabViewer'
@@ -62,6 +62,7 @@ function clearUser() {
 }
 
 export default function App() {
+  const navigate = useNavigate()
   const [user, setUser]         = useState(getSavedUser)
   const [emailInput, setEmail]  = useState('')
   const [loginError, setLoginError] = useState(null)
@@ -104,6 +105,7 @@ export default function App() {
     clearUser()
     setUser(null)
     setRooms([])
+    navigate('/')
   }
 
   async function onDeleteRoom(room) {
