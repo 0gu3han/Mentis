@@ -502,20 +502,38 @@ export default function RoomViewer({ roomId, glbUrl }) {
   return (
     <div className="room-viewer" ref={viewerRef}>
       <div className="toolbar">
-        <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Anchor label" />
         <button
           className={`place-anchor-btn${placingAnchor ? ' active' : ''}`}
           onClick={() => setPlacingAnchor((p) => !p)}
         >
-          {placingAnchor ? '✓ Click on surface to place anchor' : '📌 Place Anchor'}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+            <circle cx="12" cy="9" r="2.5"/>
+          </svg>
+          {placingAnchor ? 'Click a surface…' : 'Place Anchor'}
         </button>
-        <span className="toolbar-status">
-          {placingAnchor
-            ? 'Click on any surface in the model'
-            : 'Toggle "Place Anchor" then click the model'}
-        </span>
+
+        {placingAnchor && (
+          <input
+            className="toolbar-label-input"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="Label (optional)"
+            autoFocus
+          />
+        )}
+
         <button className="fullscreen-btn" onClick={toggleFullscreen} title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}>
-          {isFullscreen ? '⊠' : '⛶'} {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+          {isFullscreen ? (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/>
+              <path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/>
+            </svg>
+          ) : (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 7V3h4"/><path d="M17 3h4v4"/><path d="M21 17v4h-4"/><path d="M7 21H3v-4"/>
+            </svg>
+          )}
         </button>
       </div>
 
@@ -544,13 +562,23 @@ export default function RoomViewer({ roomId, glbUrl }) {
             </a>
           </div>
         )}
+        {placingAnchor && (
+          <div className="placement-hint">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            Click any surface to place anchor
+          </div>
+        )}
       </div>
 
       <div className="sidebar" ref={sidebarRef}>
-        <h4>Anchors ({anchors.length})</h4>
+        <div className="sidebar-header">
+          <span className="sidebar-title">Anchors</span>
+          {anchors.length > 0 && <span className="sidebar-count">{anchors.length}</span>}
+        </div>
 
-        {/* ── Note editor panel ── */}
-        {noteEditor && (
+        {noteEditor ? (
           <NoteEditor
             anchorLabel={noteEditor.label}
             title={noteEditor.title}
@@ -561,39 +589,59 @@ export default function RoomViewer({ roomId, glbUrl }) {
             onSave={saveNote}
             onCancel={() => setNoteEditor(null)}
           />
-        )}
-
-        <ul>
-          {anchors.length === 0 && (
-            <li style={{ color: '#555', fontSize: 13, border: 'none', background: 'none' }}>
-              No anchors yet. Click "Place Anchor" then click the model.
-            </li>
-          )}
-          {anchors.map((a) => (
-            <li
-              key={a.id}
-              data-anchor-id={a.id}
-              className={`anchor-item${selectedAnchorId === a.id ? ' selected' : ''}`}
-              onClick={() => setSelectedAnchorId(a.id)}
-            >
-              <div className="anchor-header">
-                <strong>{a.label || `Anchor ${a.id}`}</strong>
-                <button className="delete-btn" title="Delete anchor" onClick={(e) => removeAnchor(e, a)}>×</button>
-              </div>
-              {a.objects && a.objects.length > 0 && (
-                <div className="anchor-objects">
-                  {a.objects.map((obj) => (
-                    <div key={obj.id} className="object-item">
-                      <strong>{obj.title}</strong>
-                      {obj.body && <div className="object-body">{obj.body}</div>}
-                    </div>
-                  ))}
+        ) : (
+          <ul>
+            {anchors.length === 0 && (
+              <li className="anchor-empty">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+                  <circle cx="12" cy="9" r="2.5"/>
+                </svg>
+                <span>No anchors yet</span>
+                <span className="anchor-empty-sub">Click "Place Anchor" then click the model</span>
+              </li>
+            )}
+            {anchors.map((a, idx) => (
+              <li
+                key={a.id}
+                data-anchor-id={a.id}
+                className={`anchor-item${selectedAnchorId === a.id ? ' selected' : ''}`}
+                onClick={() => setSelectedAnchorId(a.id)}
+              >
+                <div className="anchor-header">
+                  <span className="anchor-num">{idx + 1}</span>
+                  <strong>{a.label || `Anchor ${a.id}`}</strong>
+                  <button className="delete-btn" title="Delete anchor" onClick={(e) => removeAnchor(e, a)}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
                 </div>
-              )}
-              <button onClick={() => openNoteEditor(a)}>Attach note</button>
-            </li>
-          ))}
-        </ul>
+
+                {a.objects && a.objects.length > 0 && (
+                  <div className="anchor-objects">
+                    {a.objects.map((obj) => (
+                      <div key={obj.id} className="object-item">
+                        <strong>{obj.title}</strong>
+                        {obj.body && <div className="object-body">{obj.body}</div>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <button
+                  className="add-note-btn"
+                  onClick={(e) => { e.stopPropagation(); openNoteEditor(a) }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                  </svg>
+                  Add note
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   )
