@@ -1,5 +1,6 @@
 // src/RoomViewer.jsx
 import React, { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { USDZLoader } from 'three/examples/jsm/loaders/USDZLoader.js'
@@ -10,7 +11,7 @@ import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerM
 import { listAnchors, createAnchor, createObject, deleteAnchor } from './api'
 import NoteEditor from './NoteEditor'
 
-export default function RoomViewer({ roomId, glbUrl }) {
+export default function RoomViewer({ roomId, glbUrl, roomName = 'Room' }) {
   const mountRef = useRef()
 
   // ── Refs that the Three.js loop / event handlers read live ────────────────
@@ -502,27 +503,13 @@ export default function RoomViewer({ roomId, glbUrl }) {
   return (
     <div className="room-viewer" ref={viewerRef}>
       <div className="toolbar">
-        <button
-          className={`place-anchor-btn${placingAnchor ? ' active' : ''}`}
-          onClick={() => setPlacingAnchor((p) => !p)}
-        >
+        <Link to="/" className="back-btn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-            <circle cx="12" cy="9" r="2.5"/>
+            <polyline points="15 18 9 12 15 6"/>
           </svg>
-          {placingAnchor ? 'Click a surface…' : 'Place Anchor'}
-        </button>
-
-        {placingAnchor && (
-          <input
-            className="toolbar-label-input"
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            placeholder="Label (optional)"
-            autoFocus
-          />
-        )}
-
+          Rooms
+        </Link>
+        <span className="toolbar-room-name">{roomName}</span>
         <button className="fullscreen-btn" onClick={toggleFullscreen} title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}>
           {isFullscreen ? (
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -576,6 +563,28 @@ export default function RoomViewer({ roomId, glbUrl }) {
         <div className="sidebar-header">
           <span className="sidebar-title">Anchors</span>
           {anchors.length > 0 && <span className="sidebar-count">{anchors.length}</span>}
+        </div>
+
+        <div className="sidebar-place-anchor">
+          <button
+            className={`place-anchor-btn${placingAnchor ? ' active' : ''}`}
+            onClick={() => setPlacingAnchor((p) => !p)}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+              <circle cx="12" cy="9" r="2.5"/>
+            </svg>
+            {placingAnchor ? 'Click a surface…' : 'Place Anchor'}
+          </button>
+          {placingAnchor && (
+            <input
+              className="toolbar-label-input sidebar-label-input"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              placeholder="Label (optional)"
+              autoFocus
+            />
+          )}
         </div>
 
         {noteEditor ? (
