@@ -43,9 +43,100 @@ body {
 
 /* ── App shell ───────────────────────────────────────────────── */
 .app {
-  display: grid;
-  grid-template-rows: auto auto auto auto 1fr;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Navbar ──────────────────────────────────────────────────── */
+.app-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: 52px;
+  background: rgba(10, 14, 20, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(69, 70, 82, 0.18);
+  flex-shrink: 0;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--on-surface);
+  text-decoration: none;
+  letter-spacing: -0.01em;
+}
+
+.navbar-brand svg { color: var(--primary); }
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.navbar-upload {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  background: var(--primary);
+  color: var(--on-primary, #fff);
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  border-radius: var(--radius-xl);
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+.navbar-upload:hover { opacity: 0.85; }
+
+.navbar-email {
+  font-size: 0.8rem;
+  color: var(--on-surface-dim);
+}
+
+.navbar-signout {
+  background: none;
+  border: 1px solid rgba(69, 70, 82, 0.4);
+  color: var(--on-surface-dim);
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-family: var(--font-body);
+  transition: border-color 0.15s, color 0.15s;
+}
+.navbar-signout:hover { border-color: var(--primary); color: var(--on-surface); }
+
+/* ── Full-page viewer layout ─────────────────────────────────── */
+.viewer-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: calc(100vh - 52px);
+}
+
+.viewer-page .room-viewer {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  border-radius: 0;
+  box-shadow: none;
+  margin: 0;
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -769,18 +860,6 @@ body {
 }
 
 .demo-room-info a:hover { color: var(--on-surface); }
-/* ══════════════════════════════════════════════════════════════
-   VIEWER SECTION
-   ══════════════════════════════════════════════════════════════ */
-.viewer {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 40px 20px 60px;
-  background: var(--surface-lowest);
-  width: 100%;
-}
-
 .room-viewer {
   display: grid;
   grid-template-areas:
@@ -874,10 +953,53 @@ body {
   grid-area: toolbar;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
+  gap: 12px;
+  padding: 0 16px;
+  height: 48px;
   background: var(--surface-high);
   border-bottom: 1px solid rgba(69, 70, 82, 0.15);
+  flex-shrink: 0;
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--on-surface-dim);
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  text-decoration: none;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+.back-btn:hover { color: var(--on-surface); background: rgba(69, 70, 82, 0.2); }
+
+.toolbar-room-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--font-display);
+  color: var(--on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+/* ── Sidebar place-anchor area ───────────────────────────────── */
+.sidebar-place-anchor {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(69, 70, 82, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.sidebar-label-input {
+  width: 100%;
 }
 
 .toolbar-label-input {
@@ -1218,20 +1340,6 @@ body {
   border-color: var(--primary);
 }
 
-.viewer p {
-  text-align: center;
-  padding: 80px 32px;
-  color: var(--on-surface-dim);
-  font-size: 1.125rem;
-  font-weight: 500;
-  font-family: var(--font-display);
-  background: rgba(49, 53, 60, 0.35);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-radius: var(--radius-lg);
-  margin: 16px 0;
-  border: 1px solid rgba(69, 70, 82, 0.15);
-}
 
 /* ══════════════════════════════════════════════════════════════
    FLOATING 3D ANCHOR LABELS (CSS2DObject)
@@ -1342,40 +1450,6 @@ body {
   font-size: 0.85rem;
   margin: 0;
 }
-.auth-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  justify-content: center;
-  margin-top: 16px;
-}
-.auth-email {
-  color: var(--secondary-dim);
-  font-size: 0.85rem;
-}
-.auth-signout {
-  background: none;
-  border: 1px solid var(--outline-variant);
-  color: var(--on-surface-dim);
-  padding: 4px 12px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-size: 0.8rem;
-}
-.upload-nav-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 14px;
-  border-radius: var(--radius-sm);
-  background: var(--primary);
-  color: var(--on-primary);
-  font-size: 0.82rem;
-  font-weight: 600;
-  text-decoration: none;
-  transition: opacity 0.15s;
-}
-.upload-nav-link:hover { opacity: 0.85; }
 .upload-page-gate {
   display: flex;
   align-items: center;

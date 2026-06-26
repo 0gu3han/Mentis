@@ -1,5 +1,6 @@
 // src/SketchfabViewer.jsx
 import React, { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { listAnchors, createAnchor, createObject, deleteAnchor } from './api'
 import NoteEditor from './NoteEditor'
 
@@ -205,26 +206,16 @@ export default function SketchfabViewer({ modelId, roomName }) {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="room-viewer">
-      {/* Toolbar */}
       <div className="toolbar">
-        <input
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          placeholder="Anchor label"
-        />
-        <button
-          className={`place-anchor-btn${placingAnchor ? ' active' : ''}`}
-          onClick={() => setPlacingAnchor((p) => !p)}
-          disabled={!apiReady}
-        >
-          {placingAnchor ? '✓ Click on model to place anchor' : '📌 Place Anchor'}
-        </button>
-        <span className="toolbar-status">
-          {placingAnchor ? 'Click on any surface in the 3D scene' : status}
-        </span>
+        <Link to="/" className="back-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+          Rooms
+        </Link>
+        <span className="toolbar-room-name">{roomName || modelId}</span>
       </div>
 
-      {/* 3-D Stage — Sketchfab iframe */}
       <div className="stage">
         <iframe
           ref={iframeRef}
@@ -236,14 +227,46 @@ export default function SketchfabViewer({ modelId, roomName }) {
           allow="autoplay; fullscreen; xr-spatial-tracking"
           style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
         />
+        {placingAnchor && (
+          <div className="placement-hint">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            Click any surface to place anchor
+          </div>
+        )}
       </div>
 
-      {/* Sidebar */}
       <div className="sidebar">
-        <h4>Anchors ({anchors.length})</h4>
+        <div className="sidebar-header">
+          <span className="sidebar-title">Anchors</span>
+          {anchors.length > 0 && <span className="sidebar-count">{anchors.length}</span>}
+        </div>
 
-        {/* ── Note editor panel ── */}
-        {noteEditor && (
+        <div className="sidebar-place-anchor">
+          <button
+            className={`place-anchor-btn${placingAnchor ? ' active' : ''}`}
+            onClick={() => setPlacingAnchor((p) => !p)}
+            disabled={!apiReady}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+              <circle cx="12" cy="9" r="2.5"/>
+            </svg>
+            {placingAnchor ? 'Click a surface…' : 'Place Anchor'}
+          </button>
+          {placingAnchor && (
+            <input
+              className="toolbar-label-input sidebar-label-input"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              placeholder="Label (optional)"
+              autoFocus
+            />
+          )}
+        </div>
+
+        {noteEditor ? (
           <NoteEditor
             anchorLabel={noteEditor.label}
             title={noteEditor.title}
@@ -254,34 +277,49 @@ export default function SketchfabViewer({ modelId, roomName }) {
             onSave={saveNote}
             onCancel={() => setNoteEditor(null)}
           />
-        )}
-
-        <ul>
-          {anchors.length === 0 && (
-            <li style={{ color: '#555', fontSize: 13, border: 'none', background: 'none' }}>
-              No anchors yet. Click "Place Anchor" and click on the model.
-            </li>
-          )}
-          {anchors.map((a) => (
-            <li key={a.id} className="anchor-item">
-              <div className="anchor-header">
-                <strong>{a.label || `Anchor ${a.id}`}</strong>
-                <button className="delete-btn" title="Delete anchor" onClick={(e) => removeAnchor(e, a)}>×</button>
-              </div>
-              {a.objects && a.objects.length > 0 && (
-                <div className="anchor-objects">
-                  {a.objects.map((obj) => (
-                    <div key={obj.id} className="object-item">
-                      <strong>{obj.title}</strong>
-                      {obj.body && <div className="object-body">{obj.body}</div>}
-                    </div>
-                  ))}
+        ) : (
+          <ul>
+            {anchors.length === 0 && (
+              <li className="anchor-empty">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+                  <circle cx="12" cy="9" r="2.5"/>
+                </svg>
+                <span>No anchors yet</span>
+                <span className="anchor-empty-sub">Place an anchor then click on the model</span>
+              </li>
+            )}
+            {anchors.map((a, idx) => (
+              <li key={a.id} className="anchor-item">
+                <div className="anchor-header">
+                  <span className="anchor-num">{idx + 1}</span>
+                  <strong>{a.label || `Anchor ${a.id}`}</strong>
+                  <button className="delete-btn" title="Delete anchor" onClick={(e) => removeAnchor(e, a)}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
                 </div>
-              )}
-              <button onClick={() => openNoteEditor(a)}>Attach note</button>
-            </li>
-          ))}
-        </ul>
+                {a.objects && a.objects.length > 0 && (
+                  <div className="anchor-objects">
+                    {a.objects.map((obj) => (
+                      <div key={obj.id} className="object-item">
+                        <strong>{obj.title}</strong>
+                        {obj.body && <div className="object-body">{obj.body}</div>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <button className="add-note-btn" onClick={() => openNoteEditor(a)}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                  </svg>
+                  Add note
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   )
