@@ -4,6 +4,7 @@ import { login, listRooms, roomGlbUrl, deleteRoom } from './api'
 import HeroBg from './HeroBg'
 import RoomThumbnail from './RoomThumbnail'
 import Navbar from './Navbar'
+import LibraryBg from './LibraryBg'
 import UploadPage from './UploadPage'
 import RoomViewerPage from './RoomViewerPage'
 import DemoViewerPage from './DemoViewerPage'
@@ -136,6 +137,10 @@ export default function App() {
               </div>
             </header>
 
+            {/* ── Library (My Rooms + Demo Rooms) ── */}
+            <div className="library">
+              <LibraryBg />
+
             {/* ── My Rooms ── */}
             {user && rooms.length > 0 && (
               <section className="rooms">
@@ -196,6 +201,7 @@ export default function App() {
                 </div>
               ))}
             </section>
+            </div> {/* /library */}
           </>
         } />
       </Routes>
