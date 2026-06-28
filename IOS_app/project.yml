@@ -30,6 +30,7 @@ targets:
         DEVELOPMENT_TEAM: ""
         PRODUCT_BUNDLE_IDENTIFIER: com.oguzhan.mentis
         INFOPLIST_FILE: Mentis/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     dependencies:
       - sdk: ARKit.framework
       - sdk: SceneKit.framework

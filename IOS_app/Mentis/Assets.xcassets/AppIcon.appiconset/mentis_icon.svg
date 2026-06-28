@@ -1,0 +1,119 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Background: deep navy radial gradient -->
+    <radialGradient id="bgGrad" cx="50%" cy="40%" r="70%">
+      <stop offset="0%"   stop-color="#1d1a52"/>
+      <stop offset="55%"  stop-color="#0e0b28"/>
+      <stop offset="100%" stop-color="#05040e"/>
+    </radialGradient>
+
+    <!-- Cube edges: teal -->
+    <linearGradient id="tealEdge" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#6ee7d8"/>
+      <stop offset="100%" stop-color="#22c9b8"/>
+    </linearGradient>
+
+    <!-- Pin body: indigo-to-violet -->
+    <linearGradient id="pinGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#c4b5fd"/>
+      <stop offset="100%" stop-color="#4c1d95"/>
+    </linearGradient>
+
+    <!-- Glow on cube edges -->
+    <filter id="cubeGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="9" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Strong glow on pin -->
+    <filter id="pinGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="22" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Soft ambient glow (blurred blob only) -->
+    <filter id="ambient" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="48"/>
+    </filter>
+  </defs>
+
+  <!-- ── Background ── -->
+  <rect width="1024" height="1024" fill="url(#bgGrad)"/>
+
+  <!-- ── Ambient light blobs ── -->
+  <!-- Teal bloom under cube -->
+  <ellipse cx="512" cy="640" rx="220" ry="90"  fill="#22c9b8" opacity="0.18" filter="url(#ambient)"/>
+  <!-- Purple bloom behind pin -->
+  <ellipse cx="512" cy="340" rx="130" ry="100" fill="#6d28d9" opacity="0.25" filter="url(#ambient)"/>
+
+  <!-- ── Background particles (tiny dots) ── -->
+  <circle cx="155" cy="195" r="2.5" fill="#66d9cc" opacity="0.45"/>
+  <circle cx="872" cy="178" r="2"   fill="#818cf8" opacity="0.40"/>
+  <circle cx="810" cy="835" r="2.5" fill="#66d9cc" opacity="0.35"/>
+  <circle cx="202" cy="808" r="2"   fill="#818cf8" opacity="0.30"/>
+  <circle cx="930" cy="490" r="2"   fill="#66d9cc" opacity="0.30"/>
+  <circle cx="88"  cy="555" r="1.5" fill="#818cf8" opacity="0.28"/>
+  <circle cx="510" cy="112" r="2"   fill="#66d9cc" opacity="0.25"/>
+  <circle cx="698" cy="142" r="1.5" fill="#818cf8" opacity="0.22"/>
+  <circle cx="305" cy="165" r="1.5" fill="#66d9cc" opacity="0.22"/>
+  <circle cx="740" cy="910" r="1.5" fill="#818cf8" opacity="0.20"/>
+  <circle cx="270" cy="900" r="1.5" fill="#66d9cc" opacity="0.20"/>
+
+  <!--
+    ── Isometric cube ──
+    s=180  →  w=180, h=90, d=90
+    anchor: x=512, y=462
+    Top face:  (512,462) (692,552) (512,642) (332,552)
+    Left face: (332,552) (332,642) (512,732) (512,642)
+    Right face:(512,642) (692,552) (692,642) (512,732)
+    Top face centre (pin tip): (512, 552)
+  -->
+
+  <!-- Cube face fills — very subtle, gives depth -->
+  <polygon points="512,462 692,552 512,642 332,552" fill="#5eead4" fill-opacity="0.06"/>
+  <polygon points="332,552 332,642 512,732 512,642"  fill="#5eead4" fill-opacity="0.09"/>
+  <polygon points="512,642 692,552 692,642 512,732"  fill="#5eead4" fill-opacity="0.04"/>
+
+  <!-- Subtle interior grid on top face -->
+  <line x1="422" y1="507" x2="602" y2="597" stroke="#5eead4" stroke-width="1.2" opacity="0.14"/>
+  <line x1="332" y1="552" x2="692" y2="552" stroke="#5eead4" stroke-width="1.2" opacity="0.10"/>
+
+  <!-- Cube edges with teal glow -->
+  <g filter="url(#cubeGlow)">
+    <polygon points="512,462 692,552 512,642 332,552"
+      fill="none" stroke="#5eead4" stroke-width="7.5" stroke-linejoin="round"/>
+    <polygon points="332,552 332,642 512,732 512,642"
+      fill="none" stroke="#5eead4" stroke-width="7.5" stroke-linejoin="round"/>
+    <polygon points="512,642 692,552 692,642 512,732"
+      fill="none" stroke="#3dd4c6" stroke-width="7.5" stroke-linejoin="round"/>
+  </g>
+
+  <!--
+    ── Location pin ──
+    Circle centre: (512, 362), r=68
+    Tangent points from tip (512,552): (448, 386) and (576, 386)
+    Arc: clockwise small arc from (448,386) to (576,386)
+
+    Pin shape: M 512,552  L 448,386  A 68,68 0 0,1 576,386  Z
+    Inner dot: centre (512, 348), r=22
+  -->
+
+  <!-- Glowing halo layer (blurred) -->
+  <g filter="url(#pinGlow)">
+    <path d="M 512,552 L 448,386 A 68,68 0 0,1 576,386 Z" fill="url(#pinGrad)"/>
+    <circle cx="512" cy="362" r="68" fill="url(#pinGrad)"/>
+  </g>
+
+  <!-- Crisp pin on top -->
+  <path d="M 512,552 L 448,386 A 68,68 0 0,1 576,386 Z" fill="url(#pinGrad)"/>
+  <circle cx="512" cy="362" r="68" fill="url(#pinGrad)"/>
+
+  <!-- Inner white eye / dot -->
+  <circle cx="512" cy="348" r="22" fill="white" opacity="0.95"/>
+</svg>

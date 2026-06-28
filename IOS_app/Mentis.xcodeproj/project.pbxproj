@@ -16,6 +16,7 @@
 		6A1B406A89AC5ED84790F04A /* GLBWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FED23C0297B2F2FDB2BB5BD0 /* GLBWriter.swift */; };
 		6FA62B038BF10D5EC742013D /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F0816CF9D5D880D0D782A0 /* LoginView.swift */; };
 		7825D4F30C8A45CB0C70786D /* SceneKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E8A6B8CDAAE7B1E3BC691427 /* SceneKit.framework */; };
+		79B359F98EED13A817525794 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6845B409976B0CE7F13FEA21 /* Assets.xcassets */; };
 		86661E1AD5ADD41EED956DA1 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AC61D5AD7CA3A1FB826DFAC /* ContentView.swift */; };
 		872724ED52E9CCD53EF6211C /* ReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA10E703042DA9BE94D5E78C /* ReviewView.swift */; };
 		8D6EB3663E3877082088EE00 /* ARWindowPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC5F27EDD3E01866D9E46FD3 /* ARWindowPresenter.swift */; };
@@ -39,7 +40,8 @@
 		4A2E89DCE5A9B02D94E989FF /* ARPlacementHostView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARPlacementHostView.swift; sourceTree = "<group>"; };
 		4C51D5B859B2AC7B2077AE09 /* ModelViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelViewerView.swift; sourceTree = "<group>"; };
 		5057AC72D30CD92129CE3C3B /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
-		554896A1C0A897378991A13C /* Mentis.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Mentis.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		554896A1C0A897378991A13C /* Mentis.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Mentis.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6845B409976B0CE7F13FEA21 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		687BAC246565D5F397B900BF /* MentisApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MentisApp.swift; sourceTree = "<group>"; };
 		944FC45A28557EEBA07D699D /* RoomPlan.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = RoomPlan.framework; path = System/Library/Frameworks/RoomPlan.framework; sourceTree = SDKROOT; };
 		99F0816CF9D5D880D0D782A0 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
@@ -75,6 +77,7 @@
 			isa = PBXGroup;
 			children = (
 				5057AC72D30CD92129CE3C3B /* AppState.swift */,
+				6845B409976B0CE7F13FEA21 /* Assets.xcassets */,
 				FB69FAFAF48C7B0450C80168 /* DesignSystem.swift */,
 				FED23C0297B2F2FDB2BB5BD0 /* GLBWriter.swift */,
 				E69C8B8B1C155DBF59BD69DD /* Info.plist */,
@@ -186,6 +189,11 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					8BF80417BCDB05593E0CDD9A = {
+						DevelopmentTeam = "";
+					};
+				};
 			};
 			buildConfigurationList = B6F2D81AF23D3F100C845FB1 /* Build configuration list for PBXProject "Mentis" */;
 			developmentRegion = en;
@@ -211,6 +219,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				79B359F98EED13A817525794 /* Assets.xcassets in Resources */,
 				57F4AFFF6A02D2E493ED2B87 /* LaunchScreen.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -249,7 +258,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = Q4KYJ4PS58;
+				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = Mentis/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -267,7 +276,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = Q4KYJ4PS58;
+				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = Mentis/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
