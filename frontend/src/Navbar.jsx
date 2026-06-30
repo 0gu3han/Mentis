@@ -1,8 +1,22 @@
 import { Link } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
 
 export default function Navbar({ user, onLogout }) {
+  const [hidden, setHidden] = useState(false)
+  const lastY = useRef(0)
+
+  useEffect(() => {
+    function onScroll() {
+      const y = window.scrollY
+      setHidden(y > lastY.current && y > 60)
+      lastY.current = y
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   return (
-    <nav className="app-navbar">
+    <nav className={`app-navbar${hidden ? ' navbar-hidden' : ''}`}>
       <Link to="/" className="navbar-brand">
         Mentis
       </Link>
