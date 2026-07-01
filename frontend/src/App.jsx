@@ -4,6 +4,7 @@ import { login, listRooms, roomGlbUrl, deleteRoom } from './api'
 import HeroBg from './HeroBg'
 import RoomThumbnail from './RoomThumbnail'
 import Navbar from './Navbar'
+import Footer from './Footer'
 import LibraryBg from './LibraryBg'
 import UploadPage from './UploadPage'
 import RoomViewerPage from './RoomViewerPage'
@@ -205,6 +206,7 @@ export default function App() {
           </>
         } />
       </Routes>
+      <Footer />
     </div>
   )
 }

@@ -63,10 +63,6 @@ body {
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(69, 70, 82, 0.18);
   flex-shrink: 0;
-  transition: transform 0.25s ease;
-}
-.navbar-hidden {
-  transform: translateY(-100%);
 }
 
 .navbar-brand {
@@ -122,6 +118,55 @@ body {
   transition: border-color 0.15s, color 0.15s;
 }
 .navbar-signout:hover { border-color: var(--primary); color: var(--on-surface); }
+
+/* ── Footer ──────────────────────────────────────────────────── */
+.app-footer {
+  margin-top: auto;
+  border-top: 1px solid rgba(69, 70, 82, 0.18);
+  background: rgba(10, 14, 20, 0.6);
+  padding: 20px 24px;
+}
+
+.footer-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.footer-brand {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--on-surface);
+}
+
+.footer-sep {
+  color: var(--on-surface-dim);
+  opacity: 0.4;
+}
+
+.footer-tagline {
+  font-size: 0.8rem;
+  color: var(--on-surface-dim);
+}
+
+.footer-links {
+  margin-left: auto;
+  display: flex;
+  gap: 20px;
+}
+
+.footer-links a {
+  font-size: 0.8rem;
+  color: var(--on-surface-dim);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.footer-links a:hover { color: var(--on-surface); }
 
 /* ── Full-page viewer layout ─────────────────────────────────── */
 .viewer-page {
