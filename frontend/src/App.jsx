@@ -33,6 +33,20 @@ const DEMO_ROOMS = [
     author: 'lazarys',
   },
   {
+    id: 'sketchfab-6256d3314d5a4bd081b35d1ddc86fcd6',
+    name: 'VR ClassRoom April 2021',
+    category: 'Education',
+    sketchfabId: '6256d3314d5a4bd081b35d1ddc86fcd6',
+    author: 'BehNaM',
+  },
+  {
+    id: 'sketchfab-2247ed77976a40b6ae81271cd6b149c8',
+    name: 'The Mystery Room',
+    category: 'Other',
+    sketchfabId: '2247ed77976a40b6ae81271cd6b149c8',
+    author: 'The Hallwyl Museum (Hallwylska museet)',
+  },
+  {
     id: 'sketchfab-79615d823a9149069dcd06c20bc9707f',
     name: 'The Billiards Room',
     category: 'Other',
