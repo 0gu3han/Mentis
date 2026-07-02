@@ -26,6 +26,13 @@ const DEMO_ROOMS = [
     author: 'Zeps3D',
   },
   {
+    id: 'sketchfab-da862325a9dd4e8baa638fb72b9b2325',
+    name: 'Conference Room',
+    category: 'Home',
+    sketchfabId: 'da862325a9dd4e8baa638fb72b9b2325',
+    author: 'Zeps3D',
+  },
+  {
     id: 'sketchfab-3ecfa670dbd946ec80b49d7df74ab453',
     name: 'Modular Classroom Preview',
     category: 'Education',
@@ -38,6 +45,20 @@ const DEMO_ROOMS = [
     category: 'Education',
     sketchfabId: '6256d3314d5a4bd081b35d1ddc86fcd6',
     author: 'BehNaM',
+  },
+  {
+    id: 'sketchfab-ceb39aa9f61f45f6bf6d139e753fb60d',
+    name: 'terrace classroom',
+    category: 'Education',
+    sketchfabId: 'ceb39aa9f61f45f6bf6d139e753fb60d',
+    author: 'okotaru',
+  },
+  {
+    id: 'sketchfab-026e2e9d69ed4e0892be49d439a45858',
+    name: 'gym',
+    category: 'Other',
+    sketchfabId: '026e2e9d69ed4e0892be49d439a45858',
+    author: 'Mostafa Ebrahim',
   },
   {
     id: 'sketchfab-2247ed77976a40b6ae81271cd6b149c8',
