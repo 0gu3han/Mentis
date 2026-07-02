@@ -4,6 +4,7 @@ import { login, listRooms, roomGlbUrl, deleteRoom } from './api'
 import HeroBg from './HeroBg'
 import RoomThumbnail from './RoomThumbnail'
 import Navbar from './Navbar'
+import Footer from './Footer'
 import LibraryBg from './LibraryBg'
 import UploadPage from './UploadPage'
 import RoomViewerPage from './RoomViewerPage'
@@ -30,6 +31,20 @@ const DEMO_ROOMS = [
     category: 'Education',
     sketchfabId: '3ecfa670dbd946ec80b49d7df74ab453',
     author: 'lazarys',
+  },
+  {
+    id: 'sketchfab-6256d3314d5a4bd081b35d1ddc86fcd6',
+    name: 'VR ClassRoom April 2021',
+    category: 'Education',
+    sketchfabId: '6256d3314d5a4bd081b35d1ddc86fcd6',
+    author: 'BehNaM',
+  },
+  {
+    id: 'sketchfab-2247ed77976a40b6ae81271cd6b149c8',
+    name: 'The Mystery Room',
+    category: 'Other',
+    sketchfabId: '2247ed77976a40b6ae81271cd6b149c8',
+    author: 'The Hallwyl Museum (Hallwylska museet)',
   },
   {
     id: 'sketchfab-79615d823a9149069dcd06c20bc9707f',
@@ -205,6 +220,7 @@ export default function App() {
           </>
         } />
       </Routes>
+      <Footer />
     </div>
   )
 }
