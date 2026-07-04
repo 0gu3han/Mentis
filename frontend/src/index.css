@@ -514,7 +514,7 @@ body {
 
 .rooms-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
 }
 
@@ -546,7 +546,7 @@ body {
 .room-thumb-wrap {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 16 / 8.5;
   background: #111318;
   flex-shrink: 0;
 }
@@ -833,7 +833,7 @@ body {
 }
 
 .demo-room-card {
-  width: 270px;
+  width: 300px;
   background: var(--surface-low);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -853,7 +853,7 @@ body {
 .demo-room-thumb {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 16 / 8.5;
   overflow: hidden;
   background: var(--surface-lowest);
 }
