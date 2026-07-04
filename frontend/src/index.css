@@ -1528,3 +1528,99 @@ body {
   color: var(--on-surface);
   margin-bottom: 12px;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE — tablet ≤ 768px
+   ══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Navbar */
+  .app-navbar { padding: 0 16px; }
+  .navbar-email { display: none; }
+
+  /* Hero */
+  .hero-header { height: 360px; }
+  .hero-content h1 { font-size: 3.2rem; }
+  .hero-subtitle { font-size: 1.1rem; }
+
+  /* Library sections */
+  .rooms      { padding: 24px 16px; }
+  .demo-rooms { padding: 24px 16px; }
+  .upload-section { padding: 20px 16px; }
+
+  /* Rooms grid: 2 cols on tablet */
+  .rooms-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
+
+  /* Demo room cards: let them fill the row */
+  .demo-rooms-grid { gap: 16px; }
+  .demo-room-card  { width: calc(50% - 8px); flex-shrink: 0; }
+
+  /* Room viewer: stack stage + sidebar vertically */
+  .room-viewer {
+    grid-template-areas:
+      "toolbar"
+      "stage"
+      "sidebar";
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr) 260px;
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+  }
+
+  .room-viewer .sidebar {
+    height: 260px;
+    border-top: 1px solid rgba(69, 70, 82, 0.2);
+  }
+
+  /* Footer */
+  .footer-inner    { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .footer-links    { margin-left: 0; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE — phone ≤ 480px
+   ══════════════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  /* Navbar */
+  .navbar-upload span { display: none; } /* keep icon, hide "Upload Room" text */
+  .navbar-upload { padding: 5px 10px; gap: 0; }
+
+  /* Hero */
+  .hero-header { height: 300px; }
+  .hero-content h1 { font-size: 2.4rem; }
+  .hero-subtitle { font-size: 1rem; }
+
+  /* Login form stacks */
+  .login-form { flex-direction: column; align-items: center; }
+  .login-input { width: 100%; min-width: unset; }
+  .login-btn   { width: 100%; }
+
+  /* Library sections */
+  .rooms      { padding: 20px 12px; }
+  .demo-rooms { padding: 20px 12px; }
+
+  /* Rooms grid: single column */
+  .rooms-grid { grid-template-columns: 1fr; gap: 12px; }
+
+  /* Demo room cards: full width */
+  .demo-room-card { width: 100%; }
+
+  /* Room viewer sidebar shorter on small phones */
+  .room-viewer {
+    grid-template-rows: auto minmax(0, 1fr) 200px;
+  }
+
+  .room-viewer .sidebar { height: 200px; }
+
+  /* Toolbar label input narrower */
+  .toolbar-label-input { width: 120px; }
+
+  /* Upload card full width */
+  .upload-card { max-width: 100%; }
+
+  /* Footer */
+  .footer-links { flex-wrap: wrap; gap: 12px; }
+}
