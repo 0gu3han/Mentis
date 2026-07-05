@@ -85,7 +85,7 @@ export default function RoomViewer({ roomId, glbUrl, roomName = 'Room' }) {
     camera.position.set(2, 1.6, 2)
 
     // Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' })
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance', logarithmicDepthBuffer: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.setSize(w, h, false)
     renderer.outputColorSpace  = THREE.SRGBColorSpace
