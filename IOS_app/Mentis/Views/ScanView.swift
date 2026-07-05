@@ -663,8 +663,8 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
     private let captureQueue    = DispatchQueue(label: "mentis.capture", qos: .utility)
     private var capturedFrames: [CapturedFrame] = []
     private var lastSampleTime: TimeInterval = 0
-    private let sampleInterval: TimeInterval = 0.25
-    private let maxFrames = 80
+    private let sampleInterval: TimeInterval = 0.10
+    private let maxFrames = 250
     private let ciContext = CIContext(options: [.useSoftwareRenderer: true])
 
     init(onMeshUpdated:     @escaping (Int) -> Void,
@@ -933,18 +933,39 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
         let vis = precomputeVisibility(wPos: wPos, wNorm: wNorm, frames: frames)
 
         // ── 4. Partition faces by surface orientation ─────────────────────────
-        var horizFaces = [(Int, Int, Int)]()   // |ny| > 0.6 — floors, desk-tops, object tops
-        var vertFaces  = [(Int, Int, Int)]()   // everything else — walls, screens, book spines
+        // Horizontal group: floors / ceilings / table tops (|ny| > 0.55)
+        // Vertical faces are further split into 4 directional quadrants so that
+        // walls facing different directions each get matched to frames taken from
+        // the appropriate camera position — improving depth and texture quality
+        // on vertical surfaces like bookshelves, screens, and door faces.
+        var horizFaces = [(Int, Int, Int)]()
+        var northFaces = [(Int, Int, Int)]()  // world +Z
+        var southFaces = [(Int, Int, Int)]()  // world -Z
+        var eastFaces  = [(Int, Int, Int)]()  // world +X
+        var westFaces  = [(Int, Int, Int)]()  // world -X
+
         for f in 0..<fCount {
             let i0 = allIdx[f*3]; let i1 = allIdx[f*3+1]; let i2 = allIdx[f*3+2]
             let avgNY = abs((wNorm[i0].y + wNorm[i1].y + wNorm[i2].y) / 3.0)
-            if avgNY > 0.6 { horizFaces.append((i0, i1, i2)) }
-            else            { vertFaces.append((i0, i1, i2)) }
+            if avgNY > 0.55 {
+                horizFaces.append((i0, i1, i2))
+            } else {
+                let avgNX = (wNorm[i0].x + wNorm[i1].x + wNorm[i2].x) / 3.0
+                let avgNZ = (wNorm[i0].z + wNorm[i1].z + wNorm[i2].z) / 3.0
+                if abs(avgNX) > abs(avgNZ) {
+                    if avgNX > 0 { eastFaces.append((i0, i1, i2)) }
+                    else         { westFaces.append((i0, i1, i2)) }
+                } else {
+                    if avgNZ > 0 { northFaces.append((i0, i1, i2)) }
+                    else         { southFaces.append((i0, i1, i2)) }
+                }
+            }
         }
 
         // ── 5. Greedy coverage selection for each orientation group ───────────
         var result = [GLBWriter.Mesh]()
-        for faceGroup in [horizFaces, vertFaces] where !faceGroup.isEmpty {
+        for faceGroup in [horizFaces, northFaces, southFaces, eastFaces, westFaces]
+                where !faceGroup.isEmpty {
             let meshes = buildCoverageSubsets(wPos: wPos, wNorm: wNorm,
                                               faces: faceGroup, frames: frames,
                                               vis: vis, vCount: vCount)
@@ -987,7 +1008,7 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
         var remaining = Array(0..<faces.count)   // indices into faces[]
         var results   = [GLBWriter.Mesh]()
 
-        for _ in 0..<1 where !remaining.isEmpty {
+        for _ in 0..<4 where !remaining.isEmpty {
             // Find the frame that makes the most remaining faces fully visible
             var bestFi = -1
             var bestCovered = [Int]()

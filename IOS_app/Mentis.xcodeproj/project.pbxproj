@@ -40,7 +40,7 @@
 		4A2E89DCE5A9B02D94E989FF /* ARPlacementHostView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARPlacementHostView.swift; sourceTree = "<group>"; };
 		4C51D5B859B2AC7B2077AE09 /* ModelViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelViewerView.swift; sourceTree = "<group>"; };
 		5057AC72D30CD92129CE3C3B /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
-		554896A1C0A897378991A13C /* Mentis.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Mentis.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		554896A1C0A897378991A13C /* Mentis.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Mentis.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6845B409976B0CE7F13FEA21 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		687BAC246565D5F397B900BF /* MentisApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MentisApp.swift; sourceTree = "<group>"; };
 		944FC45A28557EEBA07D699D /* RoomPlan.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = RoomPlan.framework; path = System/Library/Frameworks/RoomPlan.framework; sourceTree = SDKROOT; };
@@ -189,11 +189,6 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1500;
-				TargetAttributes = {
-					8BF80417BCDB05593E0CDD9A = {
-						DevelopmentTeam = "";
-					};
-				};
 			};
 			buildConfigurationList = B6F2D81AF23D3F100C845FB1 /* Build configuration list for PBXProject "Mentis" */;
 			developmentRegion = en;
@@ -258,7 +253,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = Q4KYJ4PS58;
 				INFOPLIST_FILE = Mentis/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -276,7 +271,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = Q4KYJ4PS58;
 				INFOPLIST_FILE = Mentis/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
