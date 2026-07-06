@@ -663,8 +663,8 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
     private let captureQueue    = DispatchQueue(label: "mentis.capture", qos: .utility)
     private var capturedFrames: [CapturedFrame] = []
     private var lastSampleTime: TimeInterval = 0
-    private let sampleInterval: TimeInterval = 0.10
-    private let maxFrames = 250
+    private let sampleInterval: TimeInterval = 0.20
+    private let maxFrames = 100
     private let ciContext = CIContext(options: [.useSoftwareRenderer: true])
 
     init(onMeshUpdated:     @escaping (Int) -> Void,
@@ -710,8 +710,19 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
                 defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly) }
                 let ciImg = CIImage(cvPixelBuffer: pixelBuffer)
                 guard let cgImg = self.ciContext.createCGImage(ciImg, from: ciImg.extent) else { return }
+                // Downsample texture to ≤1024 px before storing.
+                // imageSize stays at original resolution so camera.projectPoint UV math
+                // remains correct — UV coords are normalized [0,1] and work at any texture size.
+                let maxDim: CGFloat = 1024
+                let scale = min(maxDim / CGFloat(imgW), maxDim / CGFloat(imgH), 1.0)
+                let scaledSize = CGSize(width: round(CGFloat(imgW) * scale),
+                                        height: round(CGFloat(imgH) * scale))
+                UIGraphicsBeginImageContextWithOptions(scaledSize, true, 1.0)
+                UIImage(cgImage: cgImg).draw(in: CGRect(origin: .zero, size: scaledSize))
+                let scaledImg = UIGraphicsGetImageFromCurrentImageContext()
+                UIGraphicsEndImageContext()
                 let newFrame = CapturedFrame(
-                    image:     UIImage(cgImage: cgImg),
+                    image:     scaledImg ?? UIImage(cgImage: cgImg),
                     camera:    camera,
                     imageSize: CGSize(width: imgW, height: imgH)
                 )
