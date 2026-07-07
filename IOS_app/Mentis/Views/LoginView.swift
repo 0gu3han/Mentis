@@ -1,45 +1,192 @@
 import SwiftUI
 
+// MARK: - Particle Background
+
+private struct ParticleParam {
+    let x0, y0: CGFloat
+    let vx, vy: CGFloat
+    let bobAmp, bobFreq, bobPhase: CGFloat
+    let size: CGFloat
+}
+
+private struct ShapeParam {
+    let cx0, cy0: CGFloat
+    let vx, vy: CGFloat
+    let radius: CGFloat   // normalised (fraction of min screen dimension)
+    let sides: Int        // 3 = triangle, 6 = hexagon
+    let rotSpeed: CGFloat // rad / s
+    let rotPhase: CGFloat
+    let opacity: Double
+}
+
+private struct ParticlesBg: View {
+    private let particles: [ParticleParam]
+    private let shapes: [ShapeParam]
+
+    init() {
+        var rng = SystemRandomNumberGenerator()
+        var ps: [ParticleParam] = []
+        for _ in 0..<70 {
+            ps.append(ParticleParam(
+                x0:       .random(in: 0...1, using: &rng),
+                y0:       .random(in: 0...1, using: &rng),
+                vx:       .random(in: -0.009...0.009, using: &rng),
+                vy:       .random(in: -0.007...0.007, using: &rng),
+                bobAmp:   .random(in: 0.006...0.018, using: &rng),
+                bobFreq:  .random(in: 0.25...0.80, using: &rng),
+                bobPhase: .random(in: 0...(2 * .pi), using: &rng),
+                size:     .random(in: 2.0...4.0, using: &rng)
+            ))
+        }
+        particles = ps
+
+        var ss: [ShapeParam] = []
+        for _ in 0..<7 {
+            let negative: CGFloat = Bool.random(using: &rng) ? 1 : -1
+            ss.append(ShapeParam(
+                cx0:      .random(in: 0.05...0.95, using: &rng),
+                cy0:      .random(in: 0.05...0.95, using: &rng),
+                vx:       .random(in: -0.004...0.004, using: &rng),
+                vy:       .random(in: -0.003...0.003, using: &rng),
+                radius:   .random(in: 0.05...0.11, using: &rng),
+                sides:    Bool.random(using: &rng) ? 3 : 6,
+                rotSpeed: .random(in: 0.12...0.40, using: &rng) * negative,
+                rotPhase: .random(in: 0...(2 * .pi), using: &rng),
+                opacity:  .random(in: 0.07...0.18, using: &rng)
+            ))
+        }
+        shapes = ss
+    }
+
+    var body: some View {
+        TimelineView(.animation) { ctx in
+            let t = CGFloat(ctx.date.timeIntervalSinceReferenceDate)
+            Canvas { context, size in
+
+                // Position helpers with periodic wrapping
+                func wx(_ x0: CGFloat, _ vx: CGFloat) -> CGFloat {
+                    let v = x0 + vx * t
+                    let r = v.truncatingRemainder(dividingBy: 1)
+                    return (r < 0 ? r + 1 : r) * size.width
+                }
+                func wy(_ y0: CGFloat, _ vy: CGFloat, _ amp: CGFloat,
+                        _ freq: CGFloat, _ phase: CGFloat) -> CGFloat {
+                    let v = y0 + vy * t + amp * sin(freq * t + phase)
+                    let r = v.truncatingRemainder(dividingBy: 1)
+                    return (r < 0 ? r + 1 : r) * size.height
+                }
+
+                // Current particle positions
+                let positions: [CGPoint] = particles.map { p in
+                    CGPoint(x: wx(p.x0, p.vx),
+                            y: wy(p.y0, p.vy, p.bobAmp, p.bobFreq, p.bobPhase))
+                }
+
+                // Connection lines between nearby nodes
+                let thresh = size.width * 0.17
+                let thresh2 = thresh * thresh
+                var linePath = Path()
+                for i in 0..<positions.count {
+                    for j in (i + 1)..<positions.count {
+                        let dx = positions[i].x - positions[j].x
+                        let dy = positions[i].y - positions[j].y
+                        if dx * dx + dy * dy < thresh2 {
+                            linePath.move(to: positions[i])
+                            linePath.addLine(to: positions[j])
+                        }
+                    }
+                }
+                context.stroke(linePath,
+                               with: .color(Color(hex: "#3a4088").opacity(0.30)),
+                               lineWidth: 0.65)
+
+                // Particle dots
+                for (i, pos) in positions.enumerated() {
+                    let r = particles[i].size / 2
+                    let rect = CGRect(x: pos.x - r, y: pos.y - r,
+                                     width: particles[i].size, height: particles[i].size)
+                    context.fill(Path(ellipseIn: rect),
+                                 with: .color(Color(hex: "#818cf8").opacity(0.78)))
+                }
+
+                // Floating wireframe polygons
+                let dim = min(size.width, size.height)
+                for s in shapes {
+                    let cx    = wx(s.cx0, s.vx)
+                    let cy    = wy(s.cy0, s.vy, 0, 0, 0)
+                    let r     = s.radius * dim
+                    let angle = s.rotSpeed * t + s.rotPhase
+                    var poly  = Path()
+                    for k in 0..<s.sides {
+                        let a  = angle + CGFloat(k) * (.pi * 2) / CGFloat(s.sides)
+                        let pt = CGPoint(x: cx + r * cos(a), y: cy + r * sin(a))
+                        if k == 0 { poly.move(to: pt) } else { poly.addLine(to: pt) }
+                    }
+                    poly.closeSubpath()
+                    context.stroke(poly,
+                                   with: .color(Color(hex: "#66d9cc").opacity(s.opacity)),
+                                   lineWidth: 1.0)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Login View
+
 struct LoginView: View {
     @EnvironmentObject var appState: AppState
-    @State private var email = ""
-    @State private var isLoading = false
+    @State private var email        = ""
+    @State private var isLoading    = false
     @State private var errorMessage: String?
     @State private var showSettings = false
 
+    private let titleGradient = LinearGradient(
+        colors: [Color(hex: "#e8eaff"), Color(hex: "#666fca"), Color(hex: "#66d9cc")],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+
     var body: some View {
         ZStack {
-            // Base environment
-            Color.mSurface.ignoresSafeArea()
+            // Deep space base
+            Color(hex: "#06080f").ignoresSafeArea()
 
-            // Radial glow behind the form — "illuminated by attention"
+            // Animated particle constellation
+            ParticlesBg().ignoresSafeArea()
+
+            // Soft vignette — keeps edges dark so text stays readable
             RadialGradient(
-                colors: [Color.mSecondary.opacity(0.12), .clear],
+                colors: [.clear, Color.black.opacity(0.50)],
                 center: .center,
-                startRadius: 0,
-                endRadius: 340
+                startRadius: 140,
+                endRadius: 500
             )
             .ignoresSafeArea()
 
-            VStack(spacing: 48) {
+            VStack(spacing: 0) {
                 Spacer()
 
-                // Display headline
+                // ── Title ────────────────────────────────────────────────────
                 VStack(spacing: 10) {
                     Text("MENTIS")
-                        .font(.mDisplay(52))
-                        .foregroundStyle(Color.mOnSurface)
-                        .tracking(-1)
+                        .font(.system(size: 60, weight: .bold, design: .serif))
+                        .tracking(10)
+                        .foregroundStyle(titleGradient)
+                        .shadow(color: Color(hex: "#666fca").opacity(0.55),
+                                radius: 30, x: 0, y: 0)
+
                     Text("Your spatial memory palace")
-                        .font(.mLabel(13))
-                        .tracking(0.6)
-                        .foregroundStyle(Color.mSecondary)
+                        .font(.system(size: 12, weight: .medium))
+                        .tracking(3.5)
                         .textCase(.uppercase)
+                        .foregroundStyle(Color(hex: "#71749a"))
                 }
 
-                // Form — Pedestal card
-                VStack(spacing: 20) {
-                    // Email — Sink field
+                Spacer()
+
+                // ── Form card ────────────────────────────────────────────────
+                VStack(spacing: 18) {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("EMAIL")
                             .font(.mLabel())
@@ -66,12 +213,16 @@ struct LoginView: View {
                     .opacity(email.trimmingCharacters(in: .whitespaces).isEmpty ? 0.5 : 1)
                 }
                 .padding(24)
-                .background(Color.mSurfaceContainerHigh,
-                             in: RoundedRectangle(cornerRadius: 20))
-                .ambientShadow()
+                .background(
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color(hex: "#10141a").opacity(0.88))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .strokeBorder(Color(hex: "#454652").opacity(0.35), lineWidth: 1)
+                        )
+                )
                 .padding(.horizontal, 24)
-
-                Spacer()
+                .padding(.bottom, 52)
             }
 
             // Settings gear — top right
@@ -95,7 +246,7 @@ struct LoginView: View {
     }
 
     private func login() async {
-        isLoading = true
+        isLoading    = true
         errorMessage = nil
         do {
             let resp = try await APIClient.shared.login(email: email)
@@ -116,7 +267,6 @@ private struct ServerSettingsSheet: View {
     var body: some View {
         ZStack {
             Color.mSurface.ignoresSafeArea()
-
             VStack(alignment: .leading, spacing: 24) {
                 Text("Server Settings")
                     .font(.mTitle(22))
