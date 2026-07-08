@@ -12,9 +12,9 @@ private struct ParticleParam {
 private struct ShapeParam {
     let cx0, cy0: CGFloat
     let vx, vy: CGFloat
-    let radius: CGFloat   // normalised (fraction of min screen dimension)
-    let sides: Int        // 3 = triangle, 6 = hexagon
-    let rotSpeed: CGFloat // rad / s
+    let radius: CGFloat
+    let sides: Int
+    let rotSpeed: CGFloat
     let rotPhase: CGFloat
     let opacity: Double
 }
@@ -42,7 +42,7 @@ private struct ParticlesBg: View {
 
         var ss: [ShapeParam] = []
         for _ in 0..<7 {
-            let negative: CGFloat = Bool.random(using: &rng) ? 1 : -1
+            let sign: CGFloat = Bool.random(using: &rng) ? 1 : -1
             ss.append(ShapeParam(
                 cx0:      .random(in: 0.05...0.95, using: &rng),
                 cy0:      .random(in: 0.05...0.95, using: &rng),
@@ -50,7 +50,7 @@ private struct ParticlesBg: View {
                 vy:       .random(in: -0.003...0.003, using: &rng),
                 radius:   .random(in: 0.05...0.11, using: &rng),
                 sides:    Bool.random(using: &rng) ? 3 : 6,
-                rotSpeed: .random(in: 0.12...0.40, using: &rng) * negative,
+                rotSpeed: .random(in: 0.12...0.40, using: &rng) * sign,
                 rotPhase: .random(in: 0...(2 * .pi), using: &rng),
                 opacity:  .random(in: 0.07...0.18, using: &rng)
             ))
@@ -59,64 +59,62 @@ private struct ParticlesBg: View {
     }
 
     var body: some View {
-        TimelineView(.animation) { ctx in
+        TimelineView(.animation) { (ctx: TimelineViewDefaultContext) in
             let t = CGFloat(ctx.date.timeIntervalSinceReferenceDate)
-            Canvas { context, size in
-
-                // Position helpers with periodic wrapping
+            Canvas { (context: inout GraphicsContext, size: CGSize) in
                 func wx(_ x0: CGFloat, _ vx: CGFloat) -> CGFloat {
                     let v = x0 + vx * t
                     let r = v.truncatingRemainder(dividingBy: 1)
                     return (r < 0 ? r + 1 : r) * size.width
                 }
-                func wy(_ y0: CGFloat, _ vy: CGFloat, _ amp: CGFloat,
-                        _ freq: CGFloat, _ phase: CGFloat) -> CGFloat {
+                func wy(_ y0: CGFloat, _ vy: CGFloat,
+                        _ amp: CGFloat, _ freq: CGFloat, _ phase: CGFloat) -> CGFloat {
                     let v = y0 + vy * t + amp * sin(freq * t + phase)
                     let r = v.truncatingRemainder(dividingBy: 1)
                     return (r < 0 ? r + 1 : r) * size.height
                 }
 
-                // Current particle positions
                 let positions: [CGPoint] = particles.map { p in
                     CGPoint(x: wx(p.x0, p.vx),
                             y: wy(p.y0, p.vy, p.bobAmp, p.bobFreq, p.bobPhase))
                 }
 
-                // Connection lines between nearby nodes
-                let thresh = size.width * 0.17
-                let thresh2 = thresh * thresh
-                var linePath = Path()
+                // Connection lines
+                let thresh2 = (size.width * 0.17) * (size.width * 0.17)
+                var lines = Path()
                 for i in 0..<positions.count {
                     for j in (i + 1)..<positions.count {
                         let dx = positions[i].x - positions[j].x
                         let dy = positions[i].y - positions[j].y
                         if dx * dx + dy * dy < thresh2 {
-                            linePath.move(to: positions[i])
-                            linePath.addLine(to: positions[j])
+                            lines.move(to: positions[i])
+                            lines.addLine(to: positions[j])
                         }
                     }
                 }
-                context.stroke(linePath,
-                               with: .color(Color(hex: "#3a4088").opacity(0.30)),
+                context.stroke(lines,
+                               with: .color(.init(hex: "#3a4088").opacity(0.30)),
                                lineWidth: 0.65)
 
-                // Particle dots
+                // Dots
                 for (i, pos) in positions.enumerated() {
                     let r = particles[i].size / 2
-                    let rect = CGRect(x: pos.x - r, y: pos.y - r,
-                                     width: particles[i].size, height: particles[i].size)
-                    context.fill(Path(ellipseIn: rect),
-                                 with: .color(Color(hex: "#818cf8").opacity(0.78)))
+                    context.fill(
+                        Path(ellipseIn: .init(x: pos.x - r, y: pos.y - r,
+                                              width: particles[i].size,
+                                              height: particles[i].size)),
+                        with: .color(.init(hex: "#818cf8").opacity(0.78))
+                    )
                 }
 
-                // Floating wireframe polygons
+                // Rotating polygons
                 let dim = min(size.width, size.height)
                 for s in shapes {
-                    let cx    = wx(s.cx0, s.vx)
-                    let cy    = wy(s.cy0, s.vy, 0, 0, 0)
-                    let r     = s.radius * dim
+                    let cx = wx(s.cx0, s.vx)
+                    let cy = wy(s.cy0, s.vy, 0, 0, 0)
+                    let r  = s.radius * dim
                     let angle = s.rotSpeed * t + s.rotPhase
-                    var poly  = Path()
+                    var poly = Path()
                     for k in 0..<s.sides {
                         let a  = angle + CGFloat(k) * (.pi * 2) / CGFloat(s.sides)
                         let pt = CGPoint(x: cx + r * cos(a), y: cy + r * sin(a))
@@ -124,7 +122,7 @@ private struct ParticlesBg: View {
                     }
                     poly.closeSubpath()
                     context.stroke(poly,
-                                   with: .color(Color(hex: "#66d9cc").opacity(s.opacity)),
+                                   with: .color(.init(hex: "#66d9cc").opacity(s.opacity)),
                                    lineWidth: 1.0)
                 }
             }
@@ -142,20 +140,18 @@ struct LoginView: View {
     @State private var showSettings = false
 
     private let titleGradient = LinearGradient(
-        colors: [Color(hex: "#e8eaff"), Color(hex: "#666fca"), Color(hex: "#66d9cc")],
+        colors: [Color(hex: "#dee0ff"), Color.mPrimary, Color.mSecondaryFixedDim],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
 
     var body: some View {
         ZStack {
-            // Deep space base
+            // ── Full-screen background ──────────────────────────────────────
             Color(hex: "#06080f").ignoresSafeArea()
-
-            // Animated particle constellation
             ParticlesBg().ignoresSafeArea()
 
-            // Soft vignette — keeps edges dark so text stays readable
+            // Vignette
             RadialGradient(
                 colors: [.clear, Color.black.opacity(0.50)],
                 center: .center,
@@ -165,68 +161,7 @@ struct LoginView: View {
             .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                Spacer()
-
-                // ── Title ────────────────────────────────────────────────────
-                VStack(spacing: 10) {
-                    Text("MENTIS")
-                        .font(.system(size: 60, weight: .bold, design: .serif))
-                        .tracking(10)
-                        .foregroundStyle(titleGradient)
-                        .shadow(color: Color(hex: "#666fca").opacity(0.55),
-                                radius: 30, x: 0, y: 0)
-
-                    Text("Your spatial memory palace")
-                        .font(.system(size: 12, weight: .medium))
-                        .tracking(3.5)
-                        .textCase(.uppercase)
-                        .foregroundStyle(Color(hex: "#71749a"))
-                }
-
-                Spacer()
-
-                // ── Form card ────────────────────────────────────────────────
-                VStack(spacing: 18) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("EMAIL")
-                            .font(.mLabel())
-                            .tracking(0.8)
-                            .foregroundStyle(Color.mSecondary)
-                        TextField("", text: $email)
-                            .keyboardType(.emailAddress)
-                            .textInputAutocapitalization(.never)
-                            .textContentType(.emailAddress)
-                            .sinkStyle()
-                    }
-
-                    if let err = errorMessage {
-                        Text(err)
-                            .font(.mLabel())
-                            .foregroundStyle(Color(hex: "#ff6b8a"))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-
-                    MentisPrimaryButton(title: "Continue", isLoading: isLoading) {
-                        Task { await login() }
-                    }
-                    .disabled(email.trimmingCharacters(in: .whitespaces).isEmpty || isLoading)
-                    .opacity(email.trimmingCharacters(in: .whitespaces).isEmpty ? 0.5 : 1)
-                }
-                .padding(24)
-                .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(Color(hex: "#10141a").opacity(0.88))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .strokeBorder(Color(hex: "#454652").opacity(0.35), lineWidth: 1)
-                        )
-                )
-                .padding(.horizontal, 24)
-                .padding(.bottom, 52)
-            }
-
-            // Settings gear — top right
-            VStack {
+                // Settings gear — top right
                 HStack {
                     Spacer()
                     Button { showSettings = true } label: {
@@ -236,6 +171,64 @@ struct LoginView: View {
                             .padding(20)
                     }
                 }
+
+                Spacer().frame(maxHeight: 60)
+
+                // ── Title + Form centered together ───────────────────────────
+                VStack(spacing: 36) {
+                    VStack(spacing: 10) {
+                        Text("MENTIS")
+                            .font(.mDisplay(58))
+                            .tracking(-1)
+                            .foregroundStyle(titleGradient)
+                            .shadow(color: Color.mPrimary.opacity(0.55),
+                                    radius: 28, x: 0, y: 0)
+
+                        Text("Your spatial memory palace")
+                            .font(.system(size: 12, weight: .medium))
+                            .tracking(3.5)
+                            .textCase(.uppercase)
+                            .foregroundStyle(Color.mSecondary)
+                    }
+
+                    VStack(spacing: 18) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("EMAIL")
+                                .font(.mLabel())
+                                .tracking(0.8)
+                                .foregroundStyle(Color.mSecondary)
+                            TextField("", text: $email)
+                                .keyboardType(.emailAddress)
+                                .textInputAutocapitalization(.never)
+                                .textContentType(.emailAddress)
+                                .sinkStyle()
+                        }
+
+                        if let err = errorMessage {
+                            Text(err)
+                                .font(.mLabel())
+                                .foregroundStyle(Color(hex: "#ff6b8a"))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+
+                        MentisPrimaryButton(title: "Continue", isLoading: isLoading) {
+                            Task { await login() }
+                        }
+                        .disabled(email.trimmingCharacters(in: .whitespaces).isEmpty || isLoading)
+                        .opacity(email.trimmingCharacters(in: .whitespaces).isEmpty ? 0.5 : 1)
+                    }
+                    .padding(24)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(Color(hex: "#10141a"))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .strokeBorder(Color(hex: "#454652").opacity(0.35), lineWidth: 1)
+                            )
+                    )
+                    .padding(.horizontal, 20)
+                }
+
                 Spacer()
             }
         }
