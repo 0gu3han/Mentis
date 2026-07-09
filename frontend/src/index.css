@@ -202,6 +202,47 @@ body {
   justify-content: center;
 }
 
+.hero-bg-wrapper {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hero-label-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.shape-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: rgba(10, 14, 30, 0.72);
+  border: 1px solid rgba(168, 180, 255, 0.25);
+  border-radius: 8px;
+  padding: 5px 10px;
+  backdrop-filter: blur(6px);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.shape-label-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #a8b4ff;
+  text-transform: uppercase;
+}
+
+.shape-label-sub {
+  font-size: 9.5px;
+  font-weight: 400;
+  color: rgba(168, 180, 255, 0.55);
+  letter-spacing: 0.02em;
+}
+
 .hero-bg-canvas {
   position: absolute;
   inset: 0;
