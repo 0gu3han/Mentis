@@ -1,10 +1,10 @@
-// src/HeroBg.jsx — Animated Three.js background (Laravel-style floating shapes)
+// src/HeroBg.jsx — Animated Three.js background with floating concept labels
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
+import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer'
 
 const SHAPE_COUNT = 30
 
-// Each shape: geometry factory, scale range, base color
 const SHAPE_DEFS = [
   { make: () => new THREE.BoxGeometry(1, 1, 1),          minS: 0.30, maxS: 0.95 },
   { make: () => new THREE.OctahedronGeometry(0.6),       minS: 0.35, maxS: 1.05 },
@@ -12,19 +12,37 @@ const SHAPE_DEFS = [
   { make: () => new THREE.IcosahedronGeometry(0.5, 0),   minS: 0.35, maxS: 1.00 },
 ]
 
+// Labels attached to specific shape indices — explain the memory palace idea
+const SHAPE_LABELS = {
+  1:  { text: 'Spatial Anchor',   sub: 'Pin any location in 3D space' },
+  6:  { text: 'Memory Object',    sub: 'Attach notes, cards, or media' },
+  11: { text: 'Spaced Review',    sub: 'SM-2 resurfaces what you forget' },
+  16: { text: 'LiDAR Scan',       sub: 'Capture real rooms with your phone' },
+  21: { text: 'Memory Palace',    sub: 'Walk through your knowledge' },
+  26: { text: 'Place & Learn',    sub: 'Encode info into physical space' },
+}
+
 function rand(min, max) { return min + Math.random() * (max - min) }
 
 export default function HeroBg() {
   const canvasRef = useRef()
+  const labelRef  = useRef()
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
+    const canvas         = canvasRef.current
+    const labelContainer = labelRef.current
+    if (!canvas || !labelContainer) return
 
-    // ── Renderer ────────────────────────────────────────────────────────────
+    // ── WebGL Renderer ───────────────────────────────────────────────────────
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.setClearColor(0x000000, 0)
+
+    // ── CSS2D Renderer (label layer) ─────────────────────────────────────────
+    const labelRenderer = new CSS2DRenderer({ element: labelContainer })
+    labelRenderer.domElement.style.position = 'absolute'
+    labelRenderer.domElement.style.top      = '0'
+    labelRenderer.domElement.style.pointerEvents = 'none'
 
     // ── Scene / Camera ───────────────────────────────────────────────────────
     const scene  = new THREE.Scene()
@@ -47,7 +65,6 @@ export default function HeroBg() {
       const def = SHAPE_DEFS[i % SHAPE_DEFS.length]
       const geo = def.make()
 
-      // Alternate between wireframe-edged and semi-transparent solid
       const isWire = Math.random() < 0.45
       const mat = isWire
         ? new THREE.MeshStandardMaterial({
@@ -67,35 +84,42 @@ export default function HeroBg() {
       const mesh = new THREE.Mesh(geo, mat)
       const s = rand(def.minS, def.maxS)
       mesh.scale.setScalar(s)
-
-      // Spread across a wide view frustum plane
       mesh.position.set(rand(-9, 9), rand(-5, 5), rand(-5, 1))
-
-      // Random initial rotation
       mesh.rotation.set(rand(0, Math.PI * 2), rand(0, Math.PI * 2), rand(0, Math.PI * 2))
 
-      // Per-shape animation params
       mesh.userData = {
-        vy:       rand(-0.004, 0.004),   // drift speed Y
-        vx:       rand(-0.002, 0.002),   // drift speed X
-        rx:       rand(0.002, 0.008) * (Math.random() < 0.5 ? 1 : -1),
-        ry:       rand(0.003, 0.010) * (Math.random() < 0.5 ? 1 : -1),
-        rz:       rand(0.001, 0.005) * (Math.random() < 0.5 ? 1 : -1),
-        bobAmp:   rand(0.08, 0.22),      // bob amplitude
-        bobFreq:  rand(0.4, 1.1),        // bob frequency (rad/s)
-        bobPhase: rand(0, Math.PI * 2),  // phase offset so they don't all move in sync
+        vy:       rand(-0.001, 0.001),
+        vx:       rand(-0.0006, 0.0006),
+        rx:       rand(0.0005, 0.002) * (Math.random() < 0.5 ? 1 : -1),
+        ry:       rand(0.0008, 0.003) * (Math.random() < 0.5 ? 1 : -1),
+        rz:       rand(0.0003, 0.0015) * (Math.random() < 0.5 ? 1 : -1),
+        bobAmp:   rand(0.04, 0.10),
+        bobFreq:  rand(0.12, 0.35),
+        bobPhase: rand(0, Math.PI * 2),
         originY:  mesh.position.y,
+      }
+
+      // Attach label if this shape index has one
+      if (SHAPE_LABELS[i]) {
+        const { text, sub } = SHAPE_LABELS[i]
+        const div = document.createElement('div')
+        div.className = 'shape-label'
+        div.innerHTML = `<span class="shape-label-title">${text}</span><span class="shape-label-sub">${sub}</span>`
+        const label = new CSS2DObject(div)
+        label.position.set(0, 0.9, 0)
+        mesh.add(label)
       }
 
       scene.add(mesh)
       shapes.push(mesh)
     }
 
-    // ── Resize helper ────────────────────────────────────────────────────────
+    // ── Resize ───────────────────────────────────────────────────────────────
     function resize() {
       const w = canvas.parentElement?.clientWidth  || window.innerWidth
       const h = canvas.parentElement?.clientHeight || 220
       renderer.setSize(w, h, false)
+      labelRenderer.setSize(w, h)
       camera.aspect = w / h
       camera.updateProjectionMatrix()
     }
@@ -112,27 +136,23 @@ export default function HeroBg() {
 
       shapes.forEach((mesh) => {
         const d = mesh.userData
-        // Bobbing (sine wave)
         mesh.position.y = d.originY + Math.sin(t * d.bobFreq + d.bobPhase) * d.bobAmp
-        // Slow drift
         mesh.position.x += d.vx
         mesh.position.y += d.vy
-        // Wrap around edges so shapes never disappear
         if (mesh.position.x > 10) mesh.position.x = -10
         if (mesh.position.x < -10) mesh.position.x =  10
         if (mesh.position.y >  6) { mesh.position.y = -6; mesh.userData.originY = -6 }
         if (mesh.position.y < -6) { mesh.position.y =  6; mesh.userData.originY =  6 }
-        // Rotation
         mesh.rotation.x += d.rx
         mesh.rotation.y += d.ry
         mesh.rotation.z += d.rz
       })
 
-      // Slowly orbit the indigo point light for extra drama
-      pt.position.x = Math.sin(t * 0.3) * 5
-      pt.position.y = Math.cos(t * 0.2) * 3
+      pt.position.x = Math.sin(t * 0.08) * 5
+      pt.position.y = Math.cos(t * 0.06) * 3
 
       renderer.render(scene, camera)
+      labelRenderer.render(scene, camera)
     }
     tick()
 
@@ -145,10 +165,9 @@ export default function HeroBg() {
   }, [])
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="hero-bg-canvas"
-      aria-hidden="true"
-    />
+    <div className="hero-bg-wrapper">
+      <canvas ref={canvasRef} className="hero-bg-canvas" aria-hidden="true" />
+      <div ref={labelRef} className="hero-label-layer" aria-hidden="true" />
+    </div>
   )
 }
