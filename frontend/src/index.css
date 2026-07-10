@@ -119,6 +119,87 @@ body {
 }
 .navbar-signout:hover { border-color: var(--primary); color: var(--on-surface); }
 
+/* ── Delete Modal ────────────────────────────────────────────── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-card {
+  background: #10141f;
+  border: 1px solid rgba(168, 180, 255, 0.15);
+  border-radius: 16px;
+  padding: 28px 28px 24px;
+  width: min(420px, 90vw);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #e2e4ff;
+  margin: 0;
+}
+
+.modal-body {
+  font-size: 14px;
+  color: #8b90b8;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.modal-body strong {
+  color: #c8caff;
+}
+
+.modal-error {
+  font-size: 13px;
+  color: #ff6b8a;
+  margin: 0;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.modal-btn {
+  padding: 9px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s;
+}
+
+.modal-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.modal-btn-cancel {
+  background: rgba(168, 180, 255, 0.08);
+  color: #a8b4ff;
+  border: 1px solid rgba(168, 180, 255, 0.2);
+}
+
+.modal-btn-cancel:hover:not(:disabled) { background: rgba(168, 180, 255, 0.14); }
+
+.modal-btn-delete {
+  background: #c0392b;
+  color: #fff;
+}
+
+.modal-btn-delete:hover:not(:disabled) { background: #e74c3c; }
+
 /* ── Footer ──────────────────────────────────────────────────── */
 .app-footer {
   margin-top: auto;

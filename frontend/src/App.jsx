@@ -101,6 +101,9 @@ export default function App() {
   const [loginError, setLoginError] = useState(null)
   const [loggingIn, setLoggingIn]   = useState(false)
   const [rooms, setRooms]           = useState([])
+  const [deleteModal, setDeleteModal] = useState(null)   // { room } | null
+  const [deleteError, setDeleteError] = useState(null)
+  const [deleting, setDeleting]       = useState(false)
 
   useEffect(() => {
     if (user) listRooms(user.user_id).then((r) => setRooms(r.rooms ?? []))
@@ -122,14 +125,24 @@ export default function App() {
     clearUser(); setUser(null); setRooms([]); navigate('/')
   }
 
-  async function onDeleteRoom(room) {
-    if (!window.confirm(`Delete "${room.name}"? This cannot be undone.`)) return
+  function onDeleteRoom(room) {
+    setDeleteError(null)
+    setDeleteModal({ room })
+  }
+
+  async function confirmDelete() {
+    if (!deleteModal) return
+    setDeleting(true)
+    setDeleteError(null)
     try {
-      await deleteRoom(room.id)
+      await deleteRoom(deleteModal.room.id)
       const roomsData = await listRooms(user.user_id)
       setRooms(roomsData.rooms ?? [])
+      setDeleteModal(null)
     } catch (err) {
-      alert(`Delete failed: ${err.message}`)
+      setDeleteError(err.message || 'Delete failed')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -242,6 +255,26 @@ export default function App() {
         } />
       </Routes>
       <Footer />
+
+      {deleteModal && (
+        <div className="modal-backdrop" onClick={() => !deleting && setDeleteModal(null)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <h3 className="modal-title">Delete Room</h3>
+            <p className="modal-body">
+              Delete <strong>"{deleteModal.room.name}"</strong>? This cannot be undone.
+            </p>
+            {deleteError && <p className="modal-error">{deleteError}</p>}
+            <div className="modal-actions">
+              <button className="modal-btn modal-btn-cancel" onClick={() => setDeleteModal(null)} disabled={deleting}>
+                Cancel
+              </button>
+              <button className="modal-btn modal-btn-delete" onClick={confirmDelete} disabled={deleting}>
+                {deleting ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
