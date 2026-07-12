@@ -61,6 +61,13 @@ const DEMO_ROOMS = [
     author: 'Mostafa Ebrahim',
   },
   {
+    id: 'sketchfab-d9b98eca8d064d0eafcd7f5484bb61ed',
+    name: 'Backrooms VR',
+    category: 'Other',
+    sketchfabId: 'd9b98eca8d064d0eafcd7f5484bb61ed',
+    author: 'carlcapu9',
+  },
+  {
     id: 'sketchfab-2247ed77976a40b6ae81271cd6b149c8',
     name: 'The Mystery Room',
     category: 'Other',
