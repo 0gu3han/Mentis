@@ -61,6 +61,13 @@ const DEMO_ROOMS = [
     author: 'Mostafa Ebrahim',
   },
   {
+    id: 'sketchfab-d9b98eca8d064d0eafcd7f5484bb61ed',
+    name: 'Backrooms VR',
+    category: 'Other',
+    sketchfabId: 'd9b98eca8d064d0eafcd7f5484bb61ed',
+    author: 'carlcapu9',
+  },
+  {
     id: 'sketchfab-2247ed77976a40b6ae81271cd6b149c8',
     name: 'The Mystery Room',
     category: 'Other',
@@ -98,12 +105,17 @@ export default function App() {
   const navigate = useNavigate()
   const [user, setUser]             = useState(getSavedUser)
   const [emailInput, setEmail]      = useState('')
+  const [emailFocused, setEmailFocused] = useState(false)
   const [loginError, setLoginError] = useState(null)
   const [loggingIn, setLoggingIn]   = useState(false)
   const [rooms, setRooms]           = useState([])
   const [deleteModal, setDeleteModal] = useState(null)   // { room } | null
   const [deleteError, setDeleteError] = useState(null)
   const [deleting, setDeleting]       = useState(false)
+
+  const emailTrimmed = emailInput.trim()
+  const emailLooksValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed)
+  const showEmailHint = emailFocused || emailTrimmed.length > 0
 
   useEffect(() => {
     if (user) listRooms(user.user_id).then((r) => setRooms(r.rooms ?? []))
@@ -166,20 +178,34 @@ export default function App() {
 
                 {!user && (
                   <form className="login-form" onSubmit={(e) => { e.preventDefault(); if (emailInput.trim()) doLogin(emailInput.trim()) }}>
-                    <input
-                      className="login-input"
-                      type="email"
-                      placeholder="your@email.com"
-                      value={emailInput}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                    <button className="login-btn" type="submit" disabled={loggingIn}>
+                    <div className={`login-input-wrap${emailFocused ? ' focused' : ''}${emailLooksValid ? ' valid' : ''}`}>
+                      <span className="login-input-icon" aria-hidden="true">@</span>
+                      <input
+                        className="login-input"
+                        type="email"
+                        placeholder="your@email.com"
+                        value={emailInput}
+                        onChange={(e) => setEmail(e.target.value)}
+                        onFocus={() => setEmailFocused(true)}
+                        onBlur={() => setEmailFocused(false)}
+                        required
+                      />
+                    </div>
+                    <button className="login-btn" type="submit" disabled={loggingIn || !emailLooksValid}>
                       {loggingIn ? 'Signing in…' : 'Sign in'}
                     </button>
                     <button className="login-btn demo" type="button" disabled={loggingIn} onClick={() => doLogin('demo@mentis.app')}>
                       Try demo
                     </button>
+                    {showEmailHint && !loginError && (
+                      <p className={`login-hint${emailTrimmed.length > 0 && !emailLooksValid ? ' invalid' : ''}`}>
+                        {emailTrimmed.length === 0
+                          ? 'Enter your email to continue'
+                          : emailLooksValid
+                            ? 'Looks good. Ready to sign in.'
+                            : 'Use a valid email format (example@domain.com)'}
+                      </p>
+                    )}
                     {loginError && <p className="login-error">{loginError}</p>}
                   </form>
                 )}
