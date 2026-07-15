@@ -10,6 +10,7 @@
   --surface-lowest:        #0a0e14;
   --surface-low:           #181c22;
   --surface-container:     #1c2026;
+  --surface-container-low: #161a21;
   --surface-high:          #262a31;
   --surface-highest:       #31353c;
   --on-surface:            #dfe2eb;
@@ -22,12 +23,58 @@
   --secondary-dim:         #66d9cc;
   --outline-variant:       #454652;
   --shadow-ambient:        0px 24px 48px rgba(14, 34, 136, 0.15);
+  --navbar-bg:             rgba(10, 14, 20, 0.85);
+  --footer-bg:             rgba(10, 14, 20, 0.6);
+  --hero-label-bg:         rgba(10, 14, 30, 0.72);
+  --hero-label-border:     rgba(168, 180, 255, 0.25);
+  --hero-label-title:      #a8b4ff;
+  --hero-label-sub:        rgba(168, 180, 255, 0.55);
+  --viewer-overlay-bg:     var(--surface-lowest);
+  --modal-surface:         #10141f;
+  --modal-border:          rgba(168, 180, 255, 0.15);
+  --modal-title:           #e2e4ff;
+  --modal-body-text:       #8b90b8;
+  --modal-strong:          #c8caff;
+  --library-accent-opacity: 1;
   --font-display:          'Space Grotesk', sans-serif;
   --font-body:             'Inter', sans-serif;
   --radius-sm:             0.25rem;
   --radius-md:             0.75rem;
   --radius-lg:             1.25rem;
   --radius-xl:             1.5rem;
+}
+
+:root[data-theme='light'] {
+  --surface:               #e8edf4;
+  --surface-lowest:        #f4f6fa;
+  --surface-low:           #dde4ef;
+  --surface-container:     #d6dfeb;
+  --surface-container-low: #e1e8f1;
+  --surface-high:          #cbd5e4;
+  --surface-highest:       #becadd;
+  --on-surface:            #253049;
+  --on-surface-dim:        #5e6983;
+  --primary:               #5a67cd;
+  --primary-container:     #3f52bf;
+  --primary-fixed:         #eef1ff;
+  --secondary:             #5d6880;
+  --secondary-container:   #41a99d;
+  --secondary-dim:         #348d84;
+  --outline-variant:       #a9b5cb;
+  --shadow-ambient:        0px 16px 36px rgba(51, 72, 150, 0.10);
+  --navbar-bg:             rgba(238, 242, 248, 0.84);
+  --footer-bg:             rgba(226, 232, 241, 0.9);
+  --hero-label-bg:         rgba(239, 243, 249, 0.84);
+  --hero-label-border:     rgba(90, 103, 205, 0.14);
+  --hero-label-title:      #4957c2;
+  --hero-label-sub:        rgba(73, 87, 194, 0.6);
+  --viewer-overlay-bg:     #e4e9f1;
+  --modal-surface:         #eef2f7;
+  --modal-border:          rgba(90, 103, 205, 0.12);
+  --modal-title:           #24314b;
+  --modal-body-text:       #5f6b84;
+  --modal-strong:          #3f52bf;
+  --library-accent-opacity: 0.58;
 }
 
 /* ── Reset & Base ────────────────────────────────────────────── */
@@ -39,6 +86,7 @@ body {
   color: var(--on-surface);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 /* ── App shell ───────────────────────────────────────────────── */
@@ -58,7 +106,7 @@ body {
   justify-content: space-between;
   padding: 0 24px;
   height: 52px;
-  background: rgba(10, 14, 20, 0.85);
+  background: var(--navbar-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(69, 70, 82, 0.18);
@@ -83,6 +131,34 @@ body {
   display: flex;
   align-items: center;
   gap: 14px;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(69, 70, 82, 0.2);
+  background: rgba(102, 111, 202, 0.08);
+  color: var(--on-surface-dim);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.15s;
+}
+
+.theme-toggle:hover {
+  background: rgba(102, 111, 202, 0.14);
+  color: var(--on-surface);
+  border-color: rgba(102, 111, 202, 0.3);
+  transform: translateY(-1px);
+}
+
+.theme-toggle-icon {
+  font-size: 0.9rem;
+  line-height: 1;
 }
 
 .navbar-upload {
@@ -132,8 +208,8 @@ body {
 }
 
 .modal-card {
-  background: #10141f;
-  border: 1px solid rgba(168, 180, 255, 0.15);
+  background: var(--modal-surface);
+  border: 1px solid var(--modal-border);
   border-radius: 16px;
   padding: 28px 28px 24px;
   width: min(420px, 90vw);
@@ -145,19 +221,19 @@ body {
 .modal-title {
   font-size: 18px;
   font-weight: 700;
-  color: #e2e4ff;
+  color: var(--modal-title);
   margin: 0;
 }
 
 .modal-body {
   font-size: 14px;
-  color: #8b90b8;
+  color: var(--modal-body-text);
   margin: 0;
   line-height: 1.5;
 }
 
 .modal-body strong {
-  color: #c8caff;
+  color: var(--modal-strong);
 }
 
 .modal-error {
@@ -204,7 +280,7 @@ body {
 .app-footer {
   margin-top: auto;
   border-top: 1px solid rgba(69, 70, 82, 0.18);
-  background: rgba(10, 14, 20, 0.6);
+  background: var(--footer-bg);
   padding: 20px 24px;
 }
 
@@ -300,8 +376,8 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  background: rgba(10, 14, 30, 0.72);
-  border: 1px solid rgba(168, 180, 255, 0.25);
+  background: var(--hero-label-bg);
+  border: 1px solid var(--hero-label-border);
   border-radius: 8px;
   padding: 5px 10px;
   backdrop-filter: blur(6px);
@@ -313,14 +389,14 @@ body {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
-  color: #a8b4ff;
+  color: var(--hero-label-title);
   text-transform: uppercase;
 }
 
 .shape-label-sub {
   font-size: 9.5px;
   font-weight: 400;
-  color: rgba(168, 180, 255, 0.55);
+  color: var(--hero-label-sub);
   letter-spacing: 0.02em;
 }
 
@@ -616,6 +692,7 @@ body {
   height: 100%;
   pointer-events: none;
   overflow: visible;
+  opacity: var(--library-accent-opacity);
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -1081,7 +1158,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  background: var(--surface-lowest);
+  background: var(--viewer-overlay-bg);
   color: var(--on-surface-dim);
   font-size: 14px;
   padding: 32px;
@@ -1742,6 +1819,7 @@ body {
   /* Navbar */
   .app-navbar { padding: 0 16px; }
   .navbar-email { display: none; }
+  .theme-toggle-label { display: none; }
 
   /* Hero */
   .hero-header { height: 360px; }
@@ -1793,6 +1871,7 @@ body {
   /* Navbar */
   .navbar-upload span { display: none; } /* keep icon, hide "Upload Room" text */
   .navbar-upload { padding: 5px 10px; gap: 0; }
+  .theme-toggle { padding: 5px 10px; }
 
   /* Hero */
   .hero-header { height: 300px; }

@@ -14,12 +14,9 @@ const SHAPE_DEFS = [
 
 // Labels attached to specific shape indices — explain the memory palace idea
 const SHAPE_LABELS = {
-  1:  { text: 'Spatial Anchor',   sub: 'Pin any location in 3D space' },
-  6:  { text: 'Memory Object',    sub: 'Attach notes, cards, or media' },
-  11: { text: 'Spaced Review',    sub: 'SM-2 resurfaces what you forget' },
-  16: { text: 'LiDAR Scan',       sub: 'Capture real rooms with your phone' },
-  21: { text: 'Memory Palace',    sub: 'Walk through your knowledge' },
-  26: { text: 'Place & Learn',    sub: 'Encode info into physical space' },
+  3:  { text: 'Spatial Anchor', sub: 'Pin any location in 3D space' },
+  14: { text: 'Memory Palace',  sub: 'Walk through your knowledge' },
+  24: { text: 'Place & Learn',  sub: 'Encode info into physical space' },
 }
 
 function rand(min, max) { return min + Math.random() * (max - min) }
@@ -35,9 +32,9 @@ export default function HeroBg({ theme = 'dark' }) {
 
     // ── WebGL Renderer ───────────────────────────────────────────────────────
     const isLightTheme = theme === 'light'
-    const fogColor = isLightTheme ? 0xf4f5fb : 0x0a0e14
-    const primaryLight = isLightTheme ? 0x5866d6 : 0xa8b4ff
-    const secondaryLight = isLightTheme ? 0x1ea296 : 0x5de8d8
+    const fogColor = isLightTheme ? 0xe7ebf3 : 0x0a0e14
+    const primaryLight = isLightTheme ? 0x6671c8 : 0xa8b4ff
+    const secondaryLight = isLightTheme ? 0x49a99e : 0x5de8d8
 
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
@@ -51,16 +48,16 @@ export default function HeroBg({ theme = 'dark' }) {
 
     // ── Scene / Camera ───────────────────────────────────────────────────────
     const scene  = new THREE.Scene()
-    scene.fog = new THREE.FogExp2(fogColor, isLightTheme ? 0.035 : 0.06)
+    scene.fog = new THREE.FogExp2(fogColor, isLightTheme ? 0.045 : 0.06)
     const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 100)
     camera.position.z = 5
 
     // ── Lights ───────────────────────────────────────────────────────────────
-    scene.add(new THREE.AmbientLight(0xffffff, 0.6))
-    const pt = new THREE.PointLight(primaryLight, isLightTheme ? 8 : 10, 22)
+    scene.add(new THREE.AmbientLight(0xffffff, isLightTheme ? 0.42 : 0.6))
+    const pt = new THREE.PointLight(primaryLight, isLightTheme ? 6.5 : 10, 22)
     pt.position.set(3, 4, 4)
     scene.add(pt)
-    const pt2 = new THREE.PointLight(secondaryLight, isLightTheme ? 5 : 6, 16)
+    const pt2 = new THREE.PointLight(secondaryLight, isLightTheme ? 3.8 : 6, 16)
     pt2.position.set(-4, -2, 3)
     scene.add(pt2)
 
@@ -75,14 +72,14 @@ export default function HeroBg({ theme = 'dark' }) {
         ? new THREE.MeshStandardMaterial({
             color: primaryLight,
             wireframe: true,
-            opacity: rand(0.55, 0.85),
+            opacity: rand(isLightTheme ? 0.32 : 0.55, isLightTheme ? 0.58 : 0.85),
             transparent: true,
           })
         : new THREE.MeshStandardMaterial({
             color: i % 3 === 0 ? primaryLight : i % 3 === 1 ? (isLightTheme ? 0x7b8be3 : 0x7b9fff) : secondaryLight,
             roughness: 0.3,
             metalness: 0.7,
-            opacity: rand(0.35, 0.65),
+            opacity: rand(isLightTheme ? 0.18 : 0.35, isLightTheme ? 0.42 : 0.65),
             transparent: true,
           })
 
