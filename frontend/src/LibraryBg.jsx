@@ -43,10 +43,15 @@ function OctoRing({ x, y, r, color, opacity }) {
   return <polygon points={pts} fill="none" stroke={color} strokeWidth="1.2" opacity={opacity} />
 }
 
-const INDIGO = '#666fca'
-const TEAL   = '#66d9cc'
+const DARK_INDIGO = '#666fca'
+const DARK_TEAL   = '#66d9cc'
+const LIGHT_INDIGO = '#7b83d8'
+const LIGHT_TEAL   = '#3cb7aa'
 
-export default function LibraryBg() {
+export default function LibraryBg({ theme = 'dark' }) {
+  const INDIGO = theme === 'light' ? LIGHT_INDIGO : DARK_INDIGO
+  const TEAL = theme === 'light' ? LIGHT_TEAL : DARK_TEAL
+
   return (
     <svg
       className="library-bg"

@@ -24,7 +24,7 @@ const SHAPE_LABELS = {
 
 function rand(min, max) { return min + Math.random() * (max - min) }
 
-export default function HeroBg() {
+export default function HeroBg({ theme = 'dark' }) {
   const canvasRef = useRef()
   const labelRef  = useRef()
 
@@ -34,6 +34,11 @@ export default function HeroBg() {
     if (!canvas || !labelContainer) return
 
     // ── WebGL Renderer ───────────────────────────────────────────────────────
+    const isLightTheme = theme === 'light'
+    const fogColor = isLightTheme ? 0xf4f5fb : 0x0a0e14
+    const primaryLight = isLightTheme ? 0x5866d6 : 0xa8b4ff
+    const secondaryLight = isLightTheme ? 0x1ea296 : 0x5de8d8
+
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.setClearColor(0x000000, 0)
@@ -46,16 +51,16 @@ export default function HeroBg() {
 
     // ── Scene / Camera ───────────────────────────────────────────────────────
     const scene  = new THREE.Scene()
-    scene.fog = new THREE.FogExp2(0x0a0e14, 0.06)
+    scene.fog = new THREE.FogExp2(fogColor, isLightTheme ? 0.035 : 0.06)
     const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 100)
     camera.position.z = 5
 
     // ── Lights ───────────────────────────────────────────────────────────────
     scene.add(new THREE.AmbientLight(0xffffff, 0.6))
-    const pt = new THREE.PointLight(0xa8b4ff, 10, 22)
+    const pt = new THREE.PointLight(primaryLight, isLightTheme ? 8 : 10, 22)
     pt.position.set(3, 4, 4)
     scene.add(pt)
-    const pt2 = new THREE.PointLight(0x5de8d8, 6, 16)
+    const pt2 = new THREE.PointLight(secondaryLight, isLightTheme ? 5 : 6, 16)
     pt2.position.set(-4, -2, 3)
     scene.add(pt2)
 
@@ -68,13 +73,13 @@ export default function HeroBg() {
       const isWire = Math.random() < 0.45
       const mat = isWire
         ? new THREE.MeshStandardMaterial({
-            color: 0xa8b4ff,
+            color: primaryLight,
             wireframe: true,
             opacity: rand(0.55, 0.85),
             transparent: true,
           })
         : new THREE.MeshStandardMaterial({
-            color: i % 3 === 0 ? 0xa8b4ff : i % 3 === 1 ? 0x7b9fff : 0x5de8d8,
+            color: i % 3 === 0 ? primaryLight : i % 3 === 1 ? (isLightTheme ? 0x7b8be3 : 0x7b9fff) : secondaryLight,
             roughness: 0.3,
             metalness: 0.7,
             opacity: rand(0.35, 0.65),
@@ -162,7 +167,7 @@ export default function HeroBg() {
       shapes.forEach((m) => { m.geometry.dispose(); m.material.dispose() })
       renderer.dispose()
     }
-  }, [])
+  }, [theme])
 
   return (
     <div className="hero-bg-wrapper">

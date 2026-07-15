@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 
-export default function Navbar({ user, onLogout }) {
+export default function Navbar({ user, onLogout, theme, onToggleTheme }) {
   return (
     <nav className="app-navbar">
       <Link to="/" className="navbar-brand">
@@ -8,6 +8,16 @@ export default function Navbar({ user, onLogout }) {
       </Link>
 
       <div className="navbar-right">
+        <button
+          type="button"
+          className="theme-toggle"
+          onClick={onToggleTheme}
+          aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+        >
+          <span className="theme-toggle-icon" aria-hidden="true">{theme === 'dark' ? '☀' : '☾'}</span>
+          <span className="theme-toggle-label">{theme === 'dark' ? 'Light' : 'Dark'}</span>
+        </button>
         {user && (
           <Link to="/upload" className="navbar-upload">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
