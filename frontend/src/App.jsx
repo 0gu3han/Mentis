@@ -191,22 +191,26 @@ export default function App() {
                         required
                       />
                     </div>
-                    <button className="login-btn" type="submit" disabled={loggingIn || !emailLooksValid}>
-                      {loggingIn ? 'Signing in…' : 'Sign in'}
-                    </button>
-                    <button className="login-btn demo" type="button" disabled={loggingIn} onClick={() => doLogin('demo@mentis.app')}>
-                      Try demo
-                    </button>
-                    {showEmailHint && !loginError && (
-                      <p className={`login-hint${emailTrimmed.length > 0 && !emailLooksValid ? ' invalid' : ''}`}>
-                        {emailTrimmed.length === 0
-                          ? 'Enter your email to continue'
-                          : emailLooksValid
-                            ? 'Looks good. Ready to sign in.'
-                            : 'Use a valid email format (example@domain.com)'}
-                      </p>
-                    )}
-                    {loginError && <p className="login-error">{loginError}</p>}
+                    <div className="login-actions">
+                      <button className="login-btn" type="submit" disabled={loggingIn || !emailLooksValid}>
+                        {loggingIn ? 'Signing in…' : 'Sign in'}
+                      </button>
+                      <button className="login-btn demo" type="button" disabled={loggingIn} onClick={() => doLogin('demo@mentis.app')}>
+                        Try demo
+                      </button>
+                    </div>
+                    <div className="login-message-row" aria-live="polite">
+                      {showEmailHint && !loginError && (
+                        <p className={`login-hint${emailTrimmed.length > 0 && !emailLooksValid ? ' invalid' : ''}`}>
+                          {emailTrimmed.length === 0
+                            ? 'Enter your email to continue'
+                            : emailLooksValid
+                              ? 'Looks good. Ready to sign in.'
+                              : 'Use a valid email format (example@domain.com)'}
+                        </p>
+                      )}
+                      {loginError && <p className="login-error">{loginError}</p>}
+                    </div>
                   </form>
                 )}
               </div>
