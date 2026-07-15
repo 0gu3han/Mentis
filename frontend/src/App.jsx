@@ -10,6 +10,14 @@ import UploadPage from './UploadPage'
 import RoomViewerPage from './RoomViewerPage'
 import DemoViewerPage from './DemoViewerPage'
 
+function getSavedTheme() {
+  try {
+    const saved = localStorage.getItem('mentis_theme')
+    if (saved === 'light' || saved === 'dark') return saved
+  } catch {}
+  return window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+}
+
 const DEMO_ROOMS = [
   {
     id: 'sketchfab-927ef282eceb47e29397b52147d4d6c3',
@@ -103,6 +111,7 @@ function clearUser()  { sessionStorage.removeItem('mentis_user') }
 
 export default function App() {
   const navigate = useNavigate()
+  const [theme, setTheme]           = useState(getSavedTheme)
   const [user, setUser]             = useState(getSavedUser)
   const [emailInput, setEmail]      = useState('')
   const [emailFocused, setEmailFocused] = useState(false)
@@ -120,6 +129,15 @@ export default function App() {
   useEffect(() => {
     if (user) listRooms(user.user_id).then((r) => setRooms(r.rooms ?? []))
   }, [user])
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    try { localStorage.setItem('mentis_theme', theme) } catch {}
+  }, [theme])
+
+  function toggleTheme() {
+    setTheme((current) => (current === 'dark' ? 'light' : 'dark'))
+  }
 
   async function doLogin(email) {
     setLoggingIn(true); setLoginError(null)
@@ -160,7 +178,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <Navbar user={user} onLogout={handleLogout} />
+      <Navbar user={user} onLogout={handleLogout} theme={theme} onToggleTheme={toggleTheme} />
 
       <Routes>
         <Route path="/upload" element={<UploadPage user={user} onUploaded={setRooms} />} />
@@ -171,7 +189,7 @@ export default function App() {
           <>
             {/* ── Hero ── */}
             <header className="hero-header">
-              <HeroBg />
+              <HeroBg theme={theme} />
               <div className="hero-content">
                 <h1>Mentis</h1>
                 <p className="hero-subtitle">Your 3D Memory Palace</p>
@@ -218,7 +236,7 @@ export default function App() {
 
             {/* ── Library (My Rooms + Demo Rooms) ── */}
             <div className="library">
-              <LibraryBg />
+              <LibraryBg theme={theme} />
 
             {/* ── My Rooms ── */}
             {user && rooms.length > 0 && (
