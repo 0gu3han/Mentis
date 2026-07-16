@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Routes, Route, useNavigate } from 'react-router-dom'
-import { login, listRooms, roomGlbUrl, deleteRoom } from './api'
+import { login, register, listRooms, roomGlbUrl, deleteRoom } from './api'
 import HeroBg from './HeroBg'
 import RoomThumbnail from './RoomThumbnail'
 import Navbar from './Navbar'
@@ -151,6 +151,18 @@ export default function App() {
     }
   }
 
+  async function doRegister(email) {
+    setLoggingIn(true); setLoginError(null)
+    try {
+      const u = await register(email)
+      saveUser(u); setUser(u)
+    } catch (err) {
+      setLoginError(err.message || String(err))
+    } finally {
+      setLoggingIn(false)
+    }
+  }
+
   function handleLogout() {
     clearUser(); setUser(null); setRooms([]); navigate('/')
   }
@@ -212,6 +224,9 @@ export default function App() {
                     <div className="login-actions">
                       <button className="login-btn" type="submit" disabled={loggingIn || !emailLooksValid}>
                         {loggingIn ? 'Signing in…' : 'Sign in'}
+                      </button>
+                      <button className="login-btn register" type="button" disabled={loggingIn || !emailLooksValid} onClick={(e) => { e.preventDefault(); if (emailTrimmed) doRegister(emailTrimmed) }}>
+                        Register
                       </button>
                       <button className="login-btn demo" type="button" disabled={loggingIn} onClick={() => doLogin('demo@mentis.app')}>
                         Try demo

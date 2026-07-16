@@ -85,10 +85,20 @@ def login():
             return {"error": "email required"}, 400
         user = User.query.filter_by(email=email).first()
         if not user:
-            user = User(email=email)
-            db.session.add(user)
-            db.session.commit()
+            return {"error": "No account found for that email. Please register first."}, 404
         return {"user_id": user.id, "email": user.email}
+
+@bp.route("/auth/register", methods=["POST"])
+def register():
+        email = request.json.get("email")
+        if not email:
+            return {"error": "email required"}, 400
+        if User.query.filter_by(email=email).first():
+            return {"error": "An account with that email already exists."}, 409
+        user = User(email=email)
+        db.session.add(user)
+        db.session.commit()
+        return {"user_id": user.id, "email": user.email}, 201
 
 @bp.route("/rooms", methods=["POST"])
 def create_room():

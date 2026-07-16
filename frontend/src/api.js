@@ -2,21 +2,25 @@
 const BASE = import.meta.env.VITE_API_BASE || ''
 
 export async function login(email) {
-  try {
-    const res = await fetch(`${BASE}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
-    })
-    if (!res.ok) {
-      const error = await res.json().catch(() => ({ error: `HTTP ${res.status}: ${res.statusText}` }))
-      throw new Error(error.error || `Login failed with status ${res.status}`)
-    }
-    return res.json()
-  } catch (err) {
-    console.error('login() network/error:', err)
-    throw err
-  }
+  const res = await fetch(`${BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email })
+  })
+  const data = await res.json().catch(() => ({ error: `HTTP ${res.status}: ${res.statusText}` }))
+  if (!res.ok) throw new Error(data.error || `Login failed with status ${res.status}`)
+  return data
+}
+
+export async function register(email) {
+  const res = await fetch(`${BASE}/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email })
+  })
+  const data = await res.json().catch(() => ({ error: `HTTP ${res.status}: ${res.statusText}` }))
+  if (!res.ok) throw new Error(data.error || `Register failed with status ${res.status}`)
+  return data
 }
 
 export async function createRoom(user_id, name, file) {
