@@ -1766,6 +1766,14 @@ body {
 }
 
 .login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.login-btn.register {
+  background: var(--surface-high);
+  color: var(--primary);
+  border: 1px solid rgba(102, 111, 202, 0.35);
+}
+.login-btn.register:hover:not(:disabled) {
+  background: rgba(102, 111, 202, 0.12);
+}
 .login-btn.demo {
   background: var(--surface-high);
   color: var(--on-surface-dim);
