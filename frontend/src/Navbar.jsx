@@ -1,6 +1,9 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 export default function Navbar({ user, onLogout, theme, onToggleTheme }) {
+  const location = useLocation()
+  const onRegisterPage = location.pathname === '/register'
+
   return (
     <nav className="app-navbar">
       <Link to="/" className="navbar-brand">
@@ -8,6 +11,9 @@ export default function Navbar({ user, onLogout, theme, onToggleTheme }) {
       </Link>
 
       <div className="navbar-right">
+        {!user && !onRegisterPage && (
+          <Link to="/register" className="navbar-register">Create account</Link>
+        )}
         <button
           type="button"
           className="theme-toggle"

@@ -7,6 +7,7 @@ import Navbar from './Navbar'
 import Footer from './Footer'
 import LibraryBg from './LibraryBg'
 import UploadPage from './UploadPage'
+import RegisterPage from './RegisterPage'
 import RoomViewerPage from './RoomViewerPage'
 import DemoViewerPage from './DemoViewerPage'
 
@@ -193,7 +194,8 @@ export default function App() {
       <Navbar user={user} onLogout={handleLogout} theme={theme} onToggleTheme={toggleTheme} />
 
       <Routes>
-        <Route path="/upload" element={<UploadPage user={user} onUploaded={setRooms} />} />
+        <Route path="/upload"   element={<UploadPage user={user} onUploaded={setRooms} />} />
+        <Route path="/register" element={<RegisterPage onRegistered={(u) => { saveUser(u); setUser(u) }} />} />
         <Route path="/rooms/:id"       element={<RoomViewerPage />} />
         <Route path="/demo/:modelId"   element={<DemoViewerPage />} />
 
@@ -224,9 +226,6 @@ export default function App() {
                     <div className="login-actions">
                       <button className="login-btn" type="submit" disabled={loggingIn || !emailLooksValid}>
                         {loggingIn ? 'Signing in…' : 'Sign in'}
-                      </button>
-                      <button className="login-btn register" type="button" disabled={loggingIn || !emailLooksValid} onClick={(e) => { e.preventDefault(); if (emailTrimmed) doRegister(emailTrimmed) }}>
-                        Register
                       </button>
                       <button className="login-btn demo" type="button" disabled={loggingIn} onClick={() => doLogin('demo@mentis.app')}>
                         Try demo
