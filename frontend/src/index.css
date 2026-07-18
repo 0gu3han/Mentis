@@ -756,6 +756,59 @@ body {
   display: block;
 }
 
+.room-thumb-checkers {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(10, 14, 20, 0.56);
+  border: 1px solid rgba(102, 111, 202, 0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 2;
+}
+
+.room-thumb-check {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(142, 145, 168, 0.55);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+}
+
+.room-thumb-checkers.loading .room-thumb-check:nth-child(1) {
+  background: var(--primary);
+  animation: thumb-check-pulse 1.1s infinite ease-in-out;
+}
+
+.room-thumb-checkers.loading .room-thumb-check:nth-child(2) {
+  background: var(--primary);
+  animation: thumb-check-pulse 1.1s 0.15s infinite ease-in-out;
+}
+
+.room-thumb-checkers.loading .room-thumb-check:nth-child(3) {
+  background: var(--primary);
+  animation: thumb-check-pulse 1.1s 0.3s infinite ease-in-out;
+}
+
+.room-thumb-checkers.ready .room-thumb-check {
+  background: var(--secondary-dim);
+}
+
+.room-thumb-checkers.error .room-thumb-check {
+  background: #ef4444;
+}
+
+@keyframes thumb-check-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
 .room-thumb-overlay {
   position: absolute;
   inset: 0;

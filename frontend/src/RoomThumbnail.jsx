@@ -137,6 +137,11 @@ export default function RoomThumbnail({ glbUrl }) {
   return (
     <div className="room-thumb-wrap">
       <canvas ref={canvasRef} className="room-thumb-canvas" />
+      <div className={`room-thumb-checkers ${state}`} aria-hidden="true">
+        <span className="room-thumb-check" />
+        <span className="room-thumb-check" />
+        <span className="room-thumb-check" />
+      </div>
       {state === 'loading' && (
         <div className="room-thumb-overlay">
           <span className="room-thumb-spinner" />
