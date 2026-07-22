@@ -116,10 +116,28 @@ export default function RoomViewer({ roomId, glbUrl, roomName = 'Room' }) {
 
     // Controls
     const controls = new OrbitControls(camera, renderer.domElement)
-    controls.enableDamping  = true
-    controls.dampingFactor  = 0.05
-    controls.minDistance    = 0.5
-    controls.maxDistance    = 100
+    controls.enableDamping     = true
+    controls.dampingFactor     = 0.08
+    controls.minDistance       = 0.5
+    controls.maxDistance       = 100
+    controls.screenSpacePanning = true   // pan parallel to screen, not orbit axis
+    controls.panSpeed          = 1.8
+    controls.rotateSpeed       = 0.55
+    controls.zoomSpeed         = 1.2
+
+    // WASD / arrow-key movement — shifts both camera and orbit target
+    const keys = new Set()
+    const _fwd   = new THREE.Vector3()
+    const _right = new THREE.Vector3()
+    const _up    = new THREE.Vector3(0, 1, 0)
+    function onKeyDown(e) {
+      // Don't steal typing focus from inputs / textareas
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return
+      keys.add(e.code)
+    }
+    function onKeyUp(e) { keys.delete(e.code) }
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup',   onKeyUp)
 
     // Lights
     scene.add(new THREE.AmbientLight(0xffffff, 0.6))
@@ -158,6 +176,7 @@ export default function RoomViewer({ roomId, glbUrl, roomName = 'Room' }) {
         roomMesh.position.set(-center.x, -center.y, -center.z)
 
         markerRadiusRef.current = Math.min(Math.max(maxDim * 0.005, 0.015), 0.08)
+        controls.userData.moveSpeed = maxDim * 0.012
 
         // Position camera outside the room looking in at a comfortable angle
         const fov  = camera.fov * (Math.PI / 180)
@@ -186,6 +205,10 @@ export default function RoomViewer({ roomId, glbUrl, roomName = 'Room' }) {
     fetch(glbUrl, { method: 'HEAD' })
       .then((r) => {
         if (disposed) return
+        if (!r.ok) {
+          onModelError(new Error(`Server returned ${r.status} — the file may have been deleted or not yet uploaded.`))
+          return
+        }
         const ct        = r.headers.get('Content-Type') || ''
         const axisFixed = r.headers.get('X-Axis-Fixed') === 'true'
         if (ct.includes('usdz') || ct.includes('usd')) {
@@ -200,18 +223,11 @@ export default function RoomViewer({ roomId, glbUrl, roomName = 'Room' }) {
           glbUrl,
           (gltf) => onModelLoaded(gltf.scene, axisFixed),
           undefined,
-          onModelError
+          (err) => onModelError(new Error(`GLB parse error: ${err?.message || err}`))
         )
       })
-      .catch(() => {
-        if (!disposed) {
-          new GLTFLoader().load(
-            glbUrl,
-            (gltf) => onModelLoaded(gltf.scene, false),
-            undefined,
-            onModelError
-          )
-        }
+      .catch((err) => {
+        if (!disposed) onModelError(new Error(`Network error: ${err?.message || 'Could not reach server'}`))
       })
 
     // Raycasting — listeners are ALWAYS attached; the ref gates behaviour
@@ -345,6 +361,25 @@ export default function RoomViewer({ roomId, glbUrl, roomName = 'Room' }) {
     // Loop — setAnimationLoop is required for WebXR frames
     renderer.setAnimationLoop(() => {
       if (disposed) return
+
+      // WASD / arrow-key movement
+      if (keys.size > 0) {
+        const speed = controls.userData.moveSpeed ?? 0.05
+        camera.getWorldDirection(_fwd)
+        _fwd.y = 0
+        if (_fwd.lengthSq() > 0) _fwd.normalize()
+        _right.crossVectors(_fwd, _up).normalize()
+        const delta = new THREE.Vector3()
+        if (keys.has('KeyW') || keys.has('ArrowUp'))    delta.addScaledVector(_fwd,   speed)
+        if (keys.has('KeyS') || keys.has('ArrowDown'))  delta.addScaledVector(_fwd,  -speed)
+        if (keys.has('KeyA') || keys.has('ArrowLeft'))  delta.addScaledVector(_right, -speed)
+        if (keys.has('KeyD') || keys.has('ArrowRight')) delta.addScaledVector(_right,  speed)
+        if (keys.has('KeyE'))                           delta.addScaledVector(_up,     speed)
+        if (keys.has('KeyQ'))                           delta.addScaledVector(_up,    -speed)
+        camera.position.add(delta)
+        controls.target.add(delta)
+      }
+
       controls.update()
       renderer.render(scene, camera)
       labelRenderer.render(scene, camera)
@@ -357,6 +392,8 @@ export default function RoomViewer({ roomId, glbUrl, roomName = 'Room' }) {
       document.removeEventListener('fullscreenchange', handleResize)
       renderer.domElement.removeEventListener('pointermove', onPointerMove)
       renderer.domElement.removeEventListener('pointerdown', onPointerDown)
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup',   onKeyUp)
       xrControllers.forEach(({ controller, grip }) => {
         scene.remove(controller)
         scene.remove(grip)
@@ -541,12 +578,20 @@ export default function RoomViewer({ roomId, glbUrl, roomName = 'Room' }) {
         {modelState === 'error' && (
           <div className="model-overlay model-overlay--error">
             <p>Could not display this model.</p>
-            <p className="model-overlay-hint">
-              The model file may be in an unsupported or corrupted format. Download it to open locally.
-            </p>
-            <a className="model-overlay-download" href={glbUrl} download>
-              Download model file
-            </a>
+            {modelError && (
+              <p className="model-overlay-error-detail">{modelError}</p>
+            )}
+            <div className="model-overlay-actions">
+              <button
+                className="model-overlay-retry"
+                onClick={() => { setModelState('loading'); setModelError('') }}
+              >
+                Retry
+              </button>
+              <a className="model-overlay-download" href={glbUrl} download>
+                Download file
+              </a>
+            </div>
           </div>
         )}
         {placingAnchor && (
