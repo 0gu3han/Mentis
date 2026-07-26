@@ -130,6 +130,7 @@ export default function RoomViewer({ roomId, glbUrl, roomName = 'Room' }) {
     const _fwd   = new THREE.Vector3()
     const _right = new THREE.Vector3()
     const _up    = new THREE.Vector3(0, 1, 0)
+    let moveSpeed = 0.05   // updated after model loads based on scene size
     function onKeyDown(e) {
       // Don't steal typing focus from inputs / textareas
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return
@@ -176,7 +177,7 @@ export default function RoomViewer({ roomId, glbUrl, roomName = 'Room' }) {
         roomMesh.position.set(-center.x, -center.y, -center.z)
 
         markerRadiusRef.current = Math.min(Math.max(maxDim * 0.005, 0.015), 0.08)
-        controls.userData.moveSpeed = maxDim * 0.012
+        moveSpeed = maxDim * 0.012
 
         // Position camera outside the room looking in at a comfortable angle
         const fov  = camera.fov * (Math.PI / 180)
@@ -364,7 +365,7 @@ export default function RoomViewer({ roomId, glbUrl, roomName = 'Room' }) {
 
       // WASD / arrow-key movement
       if (keys.size > 0) {
-        const speed = controls.userData.moveSpeed ?? 0.05
+        const speed = moveSpeed
         camera.getWorldDirection(_fwd)
         _fwd.y = 0
         if (_fwd.lengthSq() > 0) _fwd.normalize()
