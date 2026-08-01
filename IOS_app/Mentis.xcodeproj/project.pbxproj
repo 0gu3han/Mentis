@@ -15,6 +15,7 @@
 		57F4AFFF6A02D2E493ED2B87 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 49644A3F5FADBF23FBF5F297 /* LaunchScreen.storyboard */; };
 		6A1B406A89AC5ED84790F04A /* GLBWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FED23C0297B2F2FDB2BB5BD0 /* GLBWriter.swift */; };
 		6FA62B038BF10D5EC742013D /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F0816CF9D5D880D0D782A0 /* LoginView.swift */; };
+		742E4B80166F64B7E9EBFEBE /* ServerDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89FE638C21CAD48683939419 /* ServerDiscovery.swift */; };
 		7825D4F30C8A45CB0C70786D /* SceneKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E8A6B8CDAAE7B1E3BC691427 /* SceneKit.framework */; };
 		79B359F98EED13A817525794 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6845B409976B0CE7F13FEA21 /* Assets.xcassets */; };
 		86661E1AD5ADD41EED956DA1 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AC61D5AD7CA3A1FB826DFAC /* ContentView.swift */; };
@@ -43,6 +44,7 @@
 		554896A1C0A897378991A13C /* Mentis.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Mentis.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6845B409976B0CE7F13FEA21 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		687BAC246565D5F397B900BF /* MentisApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MentisApp.swift; sourceTree = "<group>"; };
+		89FE638C21CAD48683939419 /* ServerDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerDiscovery.swift; sourceTree = "<group>"; };
 		944FC45A28557EEBA07D699D /* RoomPlan.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = RoomPlan.framework; path = System/Library/Frameworks/RoomPlan.framework; sourceTree = SDKROOT; };
 		99F0816CF9D5D880D0D782A0 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		A3318E42503502C2D2F5ABFC /* ScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanView.swift; sourceTree = "<group>"; };
@@ -134,6 +136,7 @@
 			isa = PBXGroup;
 			children = (
 				F1CCBB54B146295985BF2EE6 /* APIClient.swift */,
+				89FE638C21CAD48683939419 /* ServerDiscovery.swift */,
 			);
 			path = Network;
 			sourceTree = "<group>";
@@ -242,6 +245,7 @@
 				872724ED52E9CCD53EF6211C /* ReviewView.swift in Sources */,
 				8E54E484D6395C88F0D319B3 /* RoomListView.swift in Sources */,
 				D699710534693CC8615B32E8 /* ScanView.swift in Sources */,
+				742E4B80166F64B7E9EBFEBE /* ServerDiscovery.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

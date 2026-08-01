@@ -5,7 +5,7 @@ final class APIClient {
 
     // Change this to your server's address (use your Mac's LAN IP when testing on a real device)
     var baseURL: String {
-        get { UserDefaults.standard.string(forKey: "baseURL") ?? "http://10.0.0.147:5001" }
+        get { UserDefaults.standard.string(forKey: "baseURL") ?? "http://10.0.0.39:5001" }
         set { UserDefaults.standard.set(newValue, forKey: "baseURL") }
     }
 

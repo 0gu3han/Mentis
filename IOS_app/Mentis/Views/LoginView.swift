@@ -134,10 +134,15 @@ private struct ParticlesBg: View {
 
 struct LoginView: View {
     @EnvironmentObject var appState: AppState
-    @State private var email        = ""
-    @State private var isLoading    = false
+    @State private var email           = ""
+    @State private var isLoading       = false
     @State private var errorMessage: String?
-    @State private var showSettings = false
+    @State private var showSettings    = false
+    @State private var serverStatus: ServerStatus = .searching
+
+    private enum ServerStatus {
+        case searching, found(String), manual
+    }
 
     private let titleGradient = LinearGradient(
         colors: [Color(hex: "#dee0ff"), Color.mPrimary, Color.mSecondaryFixedDim],
@@ -211,6 +216,9 @@ struct LoginView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
 
+                        // Server discovery status
+                        serverStatusBanner
+
                         MentisPrimaryButton(title: "Continue", isLoading: isLoading) {
                             Task { await login() }
                         }
@@ -235,6 +243,70 @@ struct LoginView: View {
         .preferredColorScheme(.dark)
         .sheet(isPresented: $showSettings) {
             ServerSettingsSheet()
+        }
+        .onAppear { startDiscovery() }
+        .onDisappear { ServerDiscovery.shared.stop() }
+    }
+
+    // MARK: - Server status banner
+
+    @ViewBuilder
+    private var serverStatusBanner: some View {
+        switch serverStatus {
+        case .searching:
+            HStack(spacing: 6) {
+                ProgressView()
+                    .scaleEffect(0.7)
+                    .tint(Color.mSecondary)
+                Text("Looking for server on network…")
+                    .font(.mLabel(11))
+                    .foregroundStyle(Color.mSecondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+        case .found(let url):
+            HStack(spacing: 6) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(Color(hex: "#66d9cc"))
+                    .font(.system(size: 12))
+                Text("Connected: \(url)")
+                    .font(.mLabel(11))
+                    .foregroundStyle(Color(hex: "#66d9cc"))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+        case .manual:
+            HStack(spacing: 6) {
+                Image(systemName: "wifi.slash")
+                    .foregroundStyle(Color.mSecondary)
+                    .font(.system(size: 12))
+                Text("Not found — using manual URL")
+                    .font(.mLabel(11))
+                    .foregroundStyle(Color.mSecondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    // MARK: - Discovery
+
+    private func startDiscovery() {
+        serverStatus = .searching
+        // Give Bonjour 15 s to find the server, then fall back to manual
+        let timer = DispatchWorkItem {
+            if case .searching = serverStatus {
+                serverStatus = .manual
+                ServerDiscovery.shared.stop()
+            }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 15, execute: timer)
+
+        ServerDiscovery.shared.start { url in
+            timer.cancel()
+            APIClient.shared.baseURL = url
+            serverStatus = .found(url)
         }
     }
 

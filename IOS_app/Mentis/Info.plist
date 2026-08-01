@@ -20,11 +20,19 @@
 	<string>1</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_mentis._tcp</string>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Mentis uses the camera for AR scanning and anchor placement.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Mentis searches your local network to auto-discover the server.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Mentis can attach photos to your learning anchors.</string>
 	<key>UILaunchStoryboardName</key>

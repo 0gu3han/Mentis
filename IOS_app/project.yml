@@ -21,7 +21,11 @@ targets:
           - UIInterfaceOrientationPortrait
         NSCameraUsageDescription: "Mentis uses the camera for AR scanning and anchor placement."
         NSPhotoLibraryUsageDescription: "Mentis can attach photos to your learning anchors."
+        NSLocalNetworkUsageDescription: "Mentis searches your local network to auto-discover the server."
+        NSBonjourServices:
+          - _mentis._tcp
         NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: YES
           NSAllowsLocalNetworking: YES
     settings:
       base:
