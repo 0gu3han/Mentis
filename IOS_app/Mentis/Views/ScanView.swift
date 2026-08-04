@@ -664,7 +664,7 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
     private var capturedFrames: [CapturedFrame] = []
     private var lastSampleTime: TimeInterval = 0
     private let sampleInterval: TimeInterval = 0.20
-    private let maxFrames = 100
+    private let maxFrames = 130
     private let ciContext = CIContext(options: [.useSoftwareRenderer: true])
 
     init(onMeshUpdated:     @escaping (Int) -> Void,
@@ -743,8 +743,8 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
             let imgW   = Double(CVPixelBufferGetWidth(frame.capturedImage))
             let imgH   = Double(CVPixelBufferGetHeight(frame.capturedImage))
             let imgSize = CGSize(width: imgW, height: imgH)
-            let col2   = camera.transform.columns.2
-            let camFwd = SIMD3<Float>(col2.x, col2.y, col2.z)
+            let col3   = camera.transform.columns.3
+            let camPos = SIMD3<Float>(col3.x, col3.y, col3.z)
 
             for anchor in frame.anchors.compactMap({ $0 as? ARMeshAnchor }) {
                 guard !coveredAnchors.contains(anchor.identifier) else { continue }
@@ -764,7 +764,10 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
                     let world = SIMD3<Float>(w4.x, w4.y, w4.z)
                     let wNorm = normalize(SIMD3<Float>(n4.x, n4.y, n4.z))
                     total += 1
-                    guard simd_dot(wNorm, camFwd) > 0.2 else { continue }
+                    // Correct front-face check: surface normal must point toward camera
+                    let toCamera = camPos - world
+                    let dist = simd_length(toCamera)
+                    guard dist > 0.001, simd_dot(wNorm, toCamera / dist) > 0.25 else { continue }
                     let pt = camera.projectPoint(world, orientation: .landscapeRight,
                                                  viewportSize: imgSize)
                     let margin: CGFloat = 60
@@ -986,18 +989,30 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
     }
 
     /// Computes a flat Bool array indexed as [frameIdx * vCount + vertIdx].
-    /// True = vertex is face-on to the camera AND within the image (with margin).
+    /// True = vertex is front-facing to the camera, close enough, and on-screen.
     private func precomputeVisibility(wPos: [SIMD3<Float>],
                                        wNorm: [SIMD3<Float>],
                                        frames: [CapturedFrame]) -> [Bool] {
-        let vCount = wPos.count
+        let vCount    = wPos.count
+        let maxDist: Float = 5.0   // ignore surfaces further than 5 m (depth data degrades)
+        let margin: CGFloat = 30   // tighter screen edge margin reduces UV clamping artefacts
         var vis = [Bool](repeating: false, count: frames.count * vCount)
+
         for (fi, f) in frames.enumerated() {
-            let col2   = f.camera.transform.columns.2
-            let camFwd = SIMD3<Float>(col2.x, col2.y, col2.z)
-            let margin: CGFloat = 20
+            // Camera position in world space (columns.3 = translation)
+            let col3   = f.camera.transform.columns.3
+            let camPos = SIMD3<Float>(col3.x, col3.y, col3.z)
+
             for vi in 0..<vCount {
-                guard simd_dot(wNorm[vi], camFwd) > 0.15 else { continue }
+                // Vector from vertex to camera — correctly checks front-facing surfaces
+                let toCamera = camPos - wPos[vi]
+                let dist     = simd_length(toCamera)
+                guard dist > 0.001, dist < maxDist else { continue }
+
+                // Surface must face the camera (dot > 0 = front-facing)
+                // Threshold 0.30 ≈ max 72° — rejects oblique angles that produce blurry UVs
+                guard simd_dot(wNorm[vi], toCamera / dist) > 0.30 else { continue }
+
                 let pt = f.camera.projectPoint(wPos[vi], orientation: .landscapeRight,
                                                viewportSize: f.imageSize)
                 vis[fi * vCount + vi] =
@@ -1020,19 +1035,35 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
         var results   = [GLBWriter.Mesh]()
 
         for _ in 0..<4 where !remaining.isEmpty {
-            // Find the frame that makes the most remaining faces fully visible
-            var bestFi = -1
+            // Pick the frame with the best quality-weighted coverage score.
+            // Score per face = avg face-normal·toCamera dot product (1 = perpendicular = sharp texture).
+            // This prefers frames where the camera is close and face-on rather than just covering more faces.
+            var bestFi     = -1
+            var bestScore  = Float(-1)
             var bestCovered = [Int]()
 
-            for (fi, _) in frames.enumerated() {
+            for (fi, f) in frames.enumerated() {
+                let col3   = f.camera.transform.columns.3
+                let camPos = SIMD3<Float>(col3.x, col3.y, col3.z)
                 var covered = [Int]()
+                var score   = Float(0)
                 for ri in remaining {
                     let (i0, i1, i2) = faces[ri]
-                    if vis[fi*vCount+i0] && vis[fi*vCount+i1] && vis[fi*vCount+i2] {
-                        covered.append(ri)
-                    }
+                    guard vis[fi*vCount+i0] && vis[fi*vCount+i1] && vis[fi*vCount+i2] else { continue }
+                    covered.append(ri)
+                    // Quality = how face-on the camera is to this triangle's average normal
+                    let avgPos  = (wPos[i0] + wPos[i1] + wPos[i2]) / 3
+                    let avgNorm = normalize(wNorm[i0] + wNorm[i1] + wNorm[i2])
+                    let toCamera = normalize(camPos - avgPos)
+                    score += max(0, simd_dot(avgNorm, toCamera))
                 }
-                if covered.count > bestCovered.count { bestCovered = covered; bestFi = fi }
+                if covered.isEmpty { continue }
+                // Normalise by count so large-count frames don't automatically win
+                let normScore = score / Float(covered.count)
+                // Prefer more coverage but boost quality frames;
+                // use covered.count as primary signal, quality as tiebreaker
+                let combined = Float(covered.count) * (0.7 + 0.3 * normScore)
+                if combined > bestScore { bestScore = combined; bestCovered = covered; bestFi = fi }
             }
 
             guard bestFi >= 0, !bestCovered.isEmpty else { break }
@@ -1103,7 +1134,8 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
     }
 
     /// Build one GLBWriter.Mesh from a pre-validated set of faces + their assigned frame.
-    /// All vertices are guaranteed on-screen so UV values are written without clamping.
+    /// Crops the camera image to the UV bounding box of the mesh so the full texture
+    /// resolution is dedicated to just this surface — not wasted on off-mesh areas.
     private func buildMeshForFaces(wPos: [SIMD3<Float>], wNorm: [SIMD3<Float>],
                                     faces: [(Int, Int, Int)],
                                     frame: CapturedFrame) -> GLBWriter.Mesh? {
@@ -1115,22 +1147,52 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
 
         var posRaw  = [Float](); posRaw.reserveCapacity(usedVerts.count * 3)
         var normRaw = [Float](); normRaw.reserveCapacity(usedVerts.count * 3)
-        var uvRaw   = [Float](); uvRaw.reserveCapacity(usedVerts.count * 2)
         var minPos  = SIMD3<Float>( Float.infinity,  Float.infinity,  Float.infinity)
         var maxPos  = SIMD3<Float>(-Float.infinity, -Float.infinity, -Float.infinity)
 
-        for vi in usedVerts {
+        // ── Pass 1: project all vertices, collect pixel coords ────────────────
+        var projPx = [CGPoint](repeating: .zero, count: usedVerts.count)
+        var pxMinX = frame.imageSize.width,  pxMaxX = CGFloat(0)
+        var pxMinY = frame.imageSize.height, pxMaxY = CGFloat(0)
+
+        for (idx, vi) in usedVerts.enumerated() {
             let world = wPos[vi]; let wNrm = wNorm[vi]
             posRaw.append(contentsOf:  [world.x, world.y, world.z])
             normRaw.append(contentsOf: [wNrm.x,  wNrm.y,  wNrm.z])
             minPos = SIMD3<Float>(Swift.min(minPos.x,world.x), Swift.min(minPos.y,world.y), Swift.min(minPos.z,world.z))
             maxPos = SIMD3<Float>(Swift.max(maxPos.x,world.x), Swift.max(maxPos.y,world.y), Swift.max(maxPos.z,world.z))
-            // Vertex is on-screen — no clamping needed; UV is naturally in [0,1]
             let pt = frame.camera.projectPoint(world, orientation: .landscapeRight,
                                                viewportSize: frame.imageSize)
-            uvRaw.append(contentsOf: [Float(pt.x / frame.imageSize.width),
-                                      Float(pt.y / frame.imageSize.height)])
+            projPx[idx] = pt
+            pxMinX = Swift.min(pxMinX, pt.x); pxMaxX = Swift.max(pxMaxX, pt.x)
+            pxMinY = Swift.min(pxMinY, pt.y); pxMaxY = Swift.max(pxMaxY, pt.y)
         }
+
+        // ── Crop rect with padding so vertices don't sit right on the edge ────
+        let pad: CGFloat = 24
+        let cropX = max(0,                      pxMinX - pad)
+        let cropY = max(0,                      pxMinY - pad)
+        let cropW = min(frame.imageSize.width,  pxMaxX + pad) - cropX
+        let cropH = min(frame.imageSize.height, pxMaxY + pad) - cropY
+        guard cropW > 1, cropH > 1 else { return nil }
+
+        // ── Pass 2: remap UVs into the crop's local [0,1] space ──────────────
+        var uvRaw = [Float](); uvRaw.reserveCapacity(usedVerts.count * 2)
+        for pt in projPx {
+            uvRaw.append(Float((pt.x - cropX) / cropW))
+            uvRaw.append(Float((pt.y - cropY) / cropH))
+        }
+
+        // ── Crop the stored image to the bounding region ──────────────────────
+        // frame.imageSize = original camera resolution (for UV math)
+        // frame.image     = stored image at ≤1024 px (for pixel data)
+        let storedW = frame.image.size.width
+        let storedH = frame.image.size.height
+        let sx = storedW / frame.imageSize.width
+        let sy = storedH / frame.imageSize.height
+        let pixCrop = CGRect(x: cropX * sx, y: cropY * sy,
+                             width: cropW * sx, height: cropH * sy)
+        let croppedTexture = cropAndUpscale(frame.image, pixelCrop: pixCrop, maxDim: 1024)
 
         var idxRaw = [UInt32](); idxRaw.reserveCapacity(faces.count * 3)
         for (i0, i1, i2) in faces {
@@ -1144,10 +1206,26 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
             indices:     idxRaw.withUnsafeBytes   { Data($0) },
             vertexCount: usedVerts.count,
             indexCount:  faces.count * 3,
-            texture:     frame.image,
+            texture:     croppedTexture ?? frame.image,
             minPos:      (minPos.x, minPos.y, minPos.z),
             maxPos:      (maxPos.x, maxPos.y, maxPos.z)
         )
+    }
+
+    /// Crops a UIImage to `pixelCrop` then upscales the result so the longer edge
+    /// equals `maxDim`, giving the mesh sub-region the full texture budget.
+    private func cropAndUpscale(_ image: UIImage, pixelCrop: CGRect, maxDim: CGFloat) -> UIImage? {
+        guard let cg = image.cgImage,
+              let cropped = cg.cropping(to: pixelCrop),
+              cropped.width > 0, cropped.height > 0 else { return nil }
+        let scale = min(maxDim / CGFloat(cropped.width), maxDim / CGFloat(cropped.height), 2.0)
+        let outW = max(1, Int((CGFloat(cropped.width)  * scale).rounded()))
+        let outH = max(1, Int((CGFloat(cropped.height) * scale).rounded()))
+        UIGraphicsBeginImageContextWithOptions(CGSize(width: outW, height: outH), true, 1.0)
+        UIImage(cgImage: cropped).draw(in: CGRect(x: 0, y: 0, width: outW, height: outH))
+        let result = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        return result
     }
 
     // MARK: - Pre-processing: exposure normalization
