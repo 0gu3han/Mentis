@@ -3,7 +3,7 @@ import uuid
 import shutil
 import subprocess
 from threading import Thread
-from datetime import datetime
+from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify, send_from_directory, make_response, current_app
 from models import db, User, Room, Anchor, Object, Review
 from utils import allowed_file, schedule_next
@@ -278,7 +278,7 @@ def review_next():
         q = db.session.query(Review).join(Object).join(Anchor)
         if room_id:
             q = q.filter(Anchor.room_id == room_id)
-        q = q.filter(Review.next_due <= datetime.utcnow()).order_by(Review.next_due.asc())
+        q = q.filter(Review.next_due <= datetime.now(timezone.utc)).order_by(Review.next_due.asc())
         item = q.first()
         if not item:
             return {"due": None}
