@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Set
 
 # File extensions allowed for upload
@@ -24,4 +24,4 @@ def schedule_next(review, grade: int):
         review.reps += 1
         review.easiness = max(1.3, review.easiness + (0.1 - (5 - grade) * (0.08 + (5 - grade) * 0.02)))
     review.last_grade = grade
-    review.next_due = datetime.utcnow() + timedelta(days=review.interval_d)
+    review.next_due = datetime.now(timezone.utc) + timedelta(days=review.interval_d)
