@@ -32,9 +32,9 @@ export default function HeroBg({ theme = 'dark' }) {
 
     // ── WebGL Renderer ───────────────────────────────────────────────────────
     const isLightTheme = theme === 'light'
-    const fogColor = isLightTheme ? 0xe7ebf3 : 0x0a0e14
-    const primaryLight = isLightTheme ? 0x6671c8 : 0xa8b4ff
-    const secondaryLight = isLightTheme ? 0x49a99e : 0x5de8d8
+    const fogColor = isLightTheme ? 0xd5deea : 0x0a0e14
+    const primaryLight = isLightTheme ? 0x5965bc : 0xa8b4ff
+    const secondaryLight = isLightTheme ? 0x3f968d : 0x5de8d8
 
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
@@ -48,16 +48,16 @@ export default function HeroBg({ theme = 'dark' }) {
 
     // ── Scene / Camera ───────────────────────────────────────────────────────
     const scene  = new THREE.Scene()
-    scene.fog = new THREE.FogExp2(fogColor, isLightTheme ? 0.045 : 0.06)
+    scene.fog = new THREE.FogExp2(fogColor, isLightTheme ? 0.056 : 0.06)
     const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 100)
     camera.position.z = 5
 
     // ── Lights ───────────────────────────────────────────────────────────────
-    scene.add(new THREE.AmbientLight(0xffffff, isLightTheme ? 0.42 : 0.6))
-    const pt = new THREE.PointLight(primaryLight, isLightTheme ? 6.5 : 10, 22)
+    scene.add(new THREE.AmbientLight(0xffffff, isLightTheme ? 0.33 : 0.6))
+    const pt = new THREE.PointLight(primaryLight, isLightTheme ? 4.7 : 10, 22)
     pt.position.set(3, 4, 4)
     scene.add(pt)
-    const pt2 = new THREE.PointLight(secondaryLight, isLightTheme ? 3.8 : 6, 16)
+    const pt2 = new THREE.PointLight(secondaryLight, isLightTheme ? 2.9 : 6, 16)
     pt2.position.set(-4, -2, 3)
     scene.add(pt2)
 
@@ -72,14 +72,14 @@ export default function HeroBg({ theme = 'dark' }) {
         ? new THREE.MeshStandardMaterial({
             color: primaryLight,
             wireframe: true,
-            opacity: rand(isLightTheme ? 0.32 : 0.55, isLightTheme ? 0.58 : 0.85),
+            opacity: rand(isLightTheme ? 0.2 : 0.55, isLightTheme ? 0.4 : 0.85),
             transparent: true,
           })
         : new THREE.MeshStandardMaterial({
-            color: i % 3 === 0 ? primaryLight : i % 3 === 1 ? (isLightTheme ? 0x7b8be3 : 0x7b9fff) : secondaryLight,
+            color: i % 3 === 0 ? primaryLight : i % 3 === 1 ? (isLightTheme ? 0x6d7bd0 : 0x7b9fff) : secondaryLight,
             roughness: 0.3,
             metalness: 0.7,
-            opacity: rand(isLightTheme ? 0.18 : 0.35, isLightTheme ? 0.42 : 0.65),
+            opacity: rand(isLightTheme ? 0.12 : 0.35, isLightTheme ? 0.28 : 0.65),
             transparent: true,
           })
 
