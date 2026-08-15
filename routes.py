@@ -108,14 +108,21 @@ def create_room():
         if not (user_id and f and allowed_file(f.filename)):
             return {"error": "user_id, file (glb/gltf/obj/usdz) required"}, 400
 
-        ext = f.filename.rsplit(".", 1)[1].lower()
-        fname = f"{uuid.uuid4().hex}.{ext}"
-        path = os.path.join(current_app.config["UPLOAD_DIR"], fname)
-        f.save(path)
+        try:
+            ext = f.filename.rsplit(".", 1)[1].lower()
+            fname = f"{uuid.uuid4().hex}.{ext}"
+            upload_dir = current_app.config["UPLOAD_DIR"]
+            os.makedirs(upload_dir, exist_ok=True)
+            path = os.path.join(upload_dir, fname)
+            f.save(path)
 
-        room = Room(user_id=int(user_id), name=name, glb_path=path)
-        db.session.add(room)
-        db.session.commit()
+            room = Room(user_id=int(user_id), name=name, glb_path=path)
+            db.session.add(room)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.exception("create_room failed")
+            return {"error": str(e)}, 500
 
         if ext == "usdz" and _blender_path():
             app = current_app._get_current_object()
