@@ -31,6 +31,10 @@ struct ScanView: View {
     ]
     private let minScanSeconds: Double = 20
 
+    // Status animation state
+    @State private var uploadPulse  = false
+    @State private var doneScale: CGFloat = 0.6
+
     // Photogrammetry state
     @State private var sampleDir:          URL?
     @State private var frameCount:         Int    = 0
@@ -76,49 +80,123 @@ struct ScanView: View {
 
     // MARK: - Naming
 
+    private var scanSteps: [(icon: String, title: String, subtitle: String)] {
+        if hasLiDAR {
+            return [
+                ("sensor.tag.radiowaves.forward.fill", "Scan the room",       "Move slowly — LiDAR captures a real-color 3D mesh"),
+                ("mappin.and.ellipse",                 "Place anchors",        "Pin memory anchors at meaningful spots in 3D"),
+                ("brain.head.profile",                 "Review & remember",    "Spaced repetition surfaces items at the right time"),
+            ]
+        } else if hasPhotogrammetry {
+            return [
+                ("camera.viewfinder",  "Capture frames",          "Walk slowly — 60+ photos build the 3D model"),
+                ("gearshape.2",        "On-device processing",    "Photogrammetry runs locally, no cloud needed"),
+                ("mappin.and.ellipse", "Place anchors & review",  "Pin items in 3D, then review via spaced repetition"),
+            ]
+        } else {
+            return [
+                ("arkit",              "AR Placement",            "No LiDAR needed — place anchors in live camera view"),
+                ("mappin.and.ellipse", "Tag your space",          "Attach learning objects to real-world spots"),
+                ("brain.head.profile", "Review & remember",       "Spaced repetition surfaces items at the right time"),
+            ]
+        }
+    }
+
     private var namingView: some View {
-        VStack(spacing: 28) {
-            VStack(alignment: .leading, spacing: 24) {
+        ScrollView {
+            VStack(spacing: 0) {
+
+                // ── Header illustration ──────────────────────────────────────
+                ZStack {
+                    Circle()
+                        .fill(Color.mPrimary.opacity(0.06))
+                        .frame(width: 130, height: 130)
+                    Circle()
+                        .fill(Color.mPrimary.opacity(0.10))
+                        .frame(width: 88, height: 88)
+                    Image(systemName: hasLiDAR
+                          ? "sensor.tag.radiowaves.forward.fill"
+                          : (hasPhotogrammetry ? "camera.viewfinder" : "arkit"))
+                        .font(.system(size: 44))
+                        .foregroundStyle(Color.mPrimary)
+                }
+                .padding(.top, 28)
+                .padding(.bottom, 16)
+
+                // ── Mode badge ───────────────────────────────────────────────
+                let modeColor = hasLiDAR ? Color.mSecondaryFixedDim : Color.mPrimary
+                let modeLabel = hasLiDAR ? "LiDAR Mesh Scan"
+                              : (hasPhotogrammetry ? "Photogrammetry" : "AR Placement")
+                HStack(spacing: 6) {
+                    Circle().fill(modeColor).frame(width: 6, height: 6)
+                    Text(modeLabel)
+                        .font(.mLabel(12)).tracking(0.5)
+                        .foregroundStyle(modeColor)
+                }
+                .padding(.horizontal, 14).padding(.vertical, 7)
+                .background(modeColor.opacity(0.12), in: Capsule())
+                .padding(.bottom, 32)
+
+                // ── Room Name field ──────────────────────────────────────────
                 VStack(alignment: .leading, spacing: 6) {
                     Text("ROOM NAME")
                         .font(.mLabel()).tracking(0.8)
                         .foregroundStyle(Color.mSecondary)
-                    TextField("e.g. Bedroom, Office", text: $roomName)
+                    TextField("e.g. Bedroom, Office, Studio", text: $roomName)
                         .sinkStyle()
                 }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 24)
 
-                HStack(spacing: 10) {
-                    Image(systemName: hasLiDAR ? "sensor.tag.radiowaves.forward.fill" : "arkit")
-                        .foregroundStyle(hasLiDAR ? Color.mSecondaryFixedDim : Color.mPrimary)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(hasLiDAR ? "3D Mesh Scan" : "AR Placement Mode")
-                            .font(.mLabel(12)).tracking(0.3)
-                            .foregroundStyle(Color.mOnSurface)
-                        Text(hasLiDAR
-                             ? "LiDAR detected — captures a real-color 3D mesh"
-                             : "No LiDAR — place anchors in your real space using AR")
-                            .font(.mLabel(11))
-                            .foregroundStyle(Color.mSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
+                // ── How it works steps ───────────────────────────────────────
+                VStack(spacing: 0) {
+                    ForEach(Array(scanSteps.enumerated()), id: \.offset) { i, step in
+                        HStack(spacing: 14) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.mPrimary.opacity(0.12))
+                                    .frame(width: 34, height: 34)
+                                Image(systemName: step.icon)
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(Color.mPrimary)
+                            }
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(step.title)
+                                    .font(.mTitle(14))
+                                    .foregroundStyle(Color.mOnSurface)
+                                Text(step.subtitle)
+                                    .font(.mLabel(11)).tracking(0.2)
+                                    .foregroundStyle(Color.mSecondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            Spacer()
+                        }
+                        .padding(.vertical, 13)
+                        if i < scanSteps.count - 1 {
+                            Rectangle()
+                                .fill(Color.mOutlineVariant.opacity(0.3))
+                                .frame(height: 1)
+                                .padding(.leading, 48)
+                        }
                     }
                 }
-                .padding(14)
-                .background(Color.mSurfaceContainerHigh,
-                             in: RoundedRectangle(cornerRadius: 12))
-            }
-            .padding(.horizontal, 24)
-
-            MentisPrimaryButton(
-                title: hasLiDAR ? "Start 3D Scan" : "Create Room",
-                isLoading: false
-            ) { startCreation() }
-                .disabled(roomName.trimmingCharacters(in: .whitespaces).isEmpty)
-                .opacity(roomName.trimmingCharacters(in: .whitespaces).isEmpty ? 0.4 : 1)
+                .padding(.horizontal, 16).padding(.vertical, 4)
+                .background(Color.mSurfaceContainerHigh, in: RoundedRectangle(cornerRadius: 16))
                 .padding(.horizontal, 24)
+                .padding(.bottom, 32)
 
-            Spacer()
+                // ── CTA ──────────────────────────────────────────────────────
+                let isEmpty = roomName.trimmingCharacters(in: .whitespaces).isEmpty
+                MentisPrimaryButton(
+                    title: hasLiDAR ? "Start 3D Scan" : (hasPhotogrammetry ? "Start Capture" : "Create Room"),
+                    isLoading: false
+                ) { startCreation() }
+                    .disabled(isEmpty)
+                    .opacity(isEmpty ? 0.4 : 1)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 40)
+            }
         }
-        .padding(.top, 24)
     }
 
     // MARK: - Capturing (Photogrammetry frame collection)
