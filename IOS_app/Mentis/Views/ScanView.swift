@@ -1213,17 +1213,28 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
         )
     }
 
-    /// Crops a UIImage to `pixelCrop` then upscales the result so the longer edge
-    /// equals `maxDim`, giving the mesh sub-region the full texture budget.
+    /// Crops a UIImage to `pixelCrop` (in UIKit image-space: origin top-left, Y down)
+    /// then scales the result so the longer crop edge meets `maxDim` (capped at 2× upscale).
+    ///
+    /// Uses UIKit drawing instead of CGImage.cropping(to:) to avoid the CoreGraphics
+    /// bottom-left-origin mismatch: cgImage.cropping interprets Y from the bottom, while
+    /// projectPoint returns coordinates with Y from the top — causing wrong crop position
+    /// and vertically reversed texture content.
     private func cropAndUpscale(_ image: UIImage, pixelCrop: CGRect, maxDim: CGFloat) -> UIImage? {
-        guard let cg = image.cgImage,
-              let cropped = cg.cropping(to: pixelCrop),
-              cropped.width > 0, cropped.height > 0 else { return nil }
-        let scale = min(maxDim / CGFloat(cropped.width), maxDim / CGFloat(cropped.height), 2.0)
-        let outW = max(1, Int((CGFloat(cropped.width)  * scale).rounded()))
-        let outH = max(1, Int((CGFloat(cropped.height) * scale).rounded()))
+        guard pixelCrop.width > 1, pixelCrop.height > 1 else { return nil }
+        // Scale so the longer crop dimension meets maxDim, without exceeding 2× upscale.
+        let scale = min(maxDim / pixelCrop.width, maxDim / pixelCrop.height, 2.0)
+        let outW  = max(1, Int((pixelCrop.width  * scale).rounded()))
+        let outH  = max(1, Int((pixelCrop.height * scale).rounded()))
+        // Draw the full source image offset so the desired crop region fills the output.
+        // UIKit uses top-left origin — same as ARCamera.projectPoint — so no Y-flip needed.
         UIGraphicsBeginImageContextWithOptions(CGSize(width: outW, height: outH), true, 1.0)
-        UIImage(cgImage: cropped).draw(in: CGRect(x: 0, y: 0, width: outW, height: outH))
+        image.draw(in: CGRect(
+            x:      -pixelCrop.minX * scale,
+            y:      -pixelCrop.minY * scale,
+            width:  image.size.width  * scale,
+            height: image.size.height * scale
+        ))
         let result = UIGraphicsGetImageFromCurrentImageContext()
         UIGraphicsEndImageContext()
         return result
