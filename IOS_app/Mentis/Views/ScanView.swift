@@ -788,10 +788,10 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
                 defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly) }
                 let ciImg = CIImage(cvPixelBuffer: pixelBuffer)
                 guard let cgImg = self.ciContext.createCGImage(ciImg, from: ciImg.extent) else { return }
-                // Downsample texture to ≤1024 px before storing.
+                // Downsample texture to ≤1536 px before storing.
                 // imageSize stays at original resolution so camera.projectPoint UV math
                 // remains correct — UV coords are normalized [0,1] and work at any texture size.
-                let maxDim: CGFloat = 1024
+                let maxDim: CGFloat = 1536
                 let scale = min(maxDim / CGFloat(imgW), maxDim / CGFloat(imgH), 1.0)
                 let scaledSize = CGSize(width: round(CGFloat(imgW) * scale),
                                         height: round(CGFloat(imgH) * scale))
@@ -1072,7 +1072,7 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
                                        wNorm: [SIMD3<Float>],
                                        frames: [CapturedFrame]) -> [Bool] {
         let vCount    = wPos.count
-        let maxDist: Float = 5.0   // ignore surfaces further than 5 m (depth data degrades)
+        let maxDist: Float = 8.0   // ignore surfaces further than 8 m (depth data degrades)
         let margin: CGFloat = 30   // tighter screen edge margin reduces UV clamping artefacts
         var vis = [Bool](repeating: false, count: frames.count * vCount)
 
@@ -1088,8 +1088,9 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
                 guard dist > 0.001, dist < maxDist else { continue }
 
                 // Surface must face the camera (dot > 0 = front-facing)
-                // Threshold 0.30 ≈ max 72° — rejects oblique angles that produce blurry UVs
-                guard simd_dot(wNorm[vi], toCamera / dist) > 0.30 else { continue }
+                // Threshold 0.25 ≈ max 75° — rejects near-grazing angles where UV projection
+                // distorts badly; greedy quality score still picks the most face-on frame.
+                guard simd_dot(wNorm[vi], toCamera / dist) > 0.25 else { continue }
 
                 let pt = f.camera.projectPoint(wPos[vi], orientation: .landscapeRight,
                                                viewportSize: f.imageSize)
@@ -1112,7 +1113,7 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
         var remaining = Array(0..<faces.count)   // indices into faces[]
         var results   = [GLBWriter.Mesh]()
 
-        for _ in 0..<4 where !remaining.isEmpty {
+        for _ in 0..<8 where !remaining.isEmpty {
             // Pick the frame with the best quality-weighted coverage score.
             // Score per face = avg face-normal·toCamera dot product (1 = perpendicular = sharp texture).
             // This prefers frames where the camera is close and face-on rather than just covering more faces.
@@ -1270,7 +1271,7 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
         let sy = storedH / frame.imageSize.height
         let pixCrop = CGRect(x: cropX * sx, y: cropY * sy,
                              width: cropW * sx, height: cropH * sy)
-        let croppedTexture = cropAndUpscale(frame.image, pixelCrop: pixCrop, maxDim: 1024)
+        let croppedTexture = cropAndUpscale(frame.image, pixelCrop: pixCrop, maxDim: 2048)
 
         var idxRaw = [UInt32](); idxRaw.reserveCapacity(faces.count * 3)
         for (i0, i1, i2) in faces {

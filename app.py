@@ -7,7 +7,7 @@ from routes import bp as routes_bp
 
 def create_app():
     # Config
-    UPLOAD_DIR = os.environ.get("UPLOAD_DIR", "uploads")
+    UPLOAD_DIR = os.path.abspath(os.environ.get("UPLOAD_DIR", os.path.join(os.path.dirname(__file__), "uploads")))
     DB_URL = os.environ.get("DATABASE_URL", "sqlite:///mentis.db")
 
     os.makedirs(UPLOAD_DIR, exist_ok=True)

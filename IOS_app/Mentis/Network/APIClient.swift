@@ -41,15 +41,22 @@ final class APIClient {
         guard let url = URL(string: "\(baseURL)/rooms") else { throw APIError.badURL }
 
         let boundary = UUID().uuidString
-        var req = URLRequest(url: url)
+        var req = URLRequest(url: url, timeoutInterval: 300) // 5 min — large GLB files
         req.httpMethod = "POST"
         req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try buildMultipart(boundary: boundary, fields: [
+
+        let body = try buildMultipart(boundary: boundary, fields: [
             ("user_id", "\(uid)"),
             ("name", name)
         ], fileURL: fileURL, fileField: "file")
 
-        return try await send(req)
+        // Use upload(for:from:) — correct API for large body data uploads
+        let (data, resp) = try await session.upload(for: req, from: body)
+        if let http = resp as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+            let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
+            throw APIError.server(msg ?? "HTTP \(http.statusCode)")
+        }
+        return try decoder.decode(CreateRoomResponse.self, from: data)
     }
 
     // MARK: - Room File
