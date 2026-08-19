@@ -31,6 +31,28 @@ struct ContentView: View {
                 .tabItem {
                     Label("Review", systemImage: "brain.head.profile")
                 }
+
+            Group {
+                if #available(iOS 17.4, *) {
+                    LanguageLearnView()
+                } else {
+                    VStack(spacing: 16) {
+                        Image(systemName: "translate")
+                            .font(.system(size: 48, weight: .light))
+                            .foregroundStyle(Color.mSecondary)
+                        Text("Language Learning requires iOS 17.4 or later.")
+                            .font(.mBody())
+                            .foregroundStyle(Color.mSecondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 40)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.mSurface)
+                }
+            }
+            .tabItem {
+                Label("Learn", systemImage: "translate")
+            }
         }
         .tint(Color.mPrimary)
         .background(Color.mSurface.ignoresSafeArea(.all))

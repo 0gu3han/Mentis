@@ -41,3 +41,6 @@ targets:
       - sdk: RealityKit.framework
       - sdk: RoomPlan.framework
         weak: true
+      - sdk: Vision.framework
+      - sdk: Translation.framework
+        weak: true
