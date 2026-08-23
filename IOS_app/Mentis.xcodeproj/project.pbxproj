@@ -13,6 +13,7 @@
 		126A73A80CF9A66EC5D48311 /* RealityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C14EAB8A478B1613B1F4960C /* RealityKit.framework */; };
 		18E608BF312B814D7D4CD8F1 /* Translation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B0374E031F2E199B44354FEC /* Translation.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 		1F85B05BDE224C9B953A2D5F /* ARSceneCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 044680EB04A1DB5BCA6FD5D2 /* ARSceneCoordinator.swift */; };
+		2DCF0D0E3311474B636C1333 /* USDZExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8114FBAA8F41E96F8D22B967 /* USDZExporter.swift */; };
 		57F4AFFF6A02D2E493ED2B87 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 49644A3F5FADBF23FBF5F297 /* LaunchScreen.storyboard */; };
 		6A1B406A89AC5ED84790F04A /* GLBWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FED23C0297B2F2FDB2BB5BD0 /* GLBWriter.swift */; };
 		6FA62B038BF10D5EC742013D /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F0816CF9D5D880D0D782A0 /* LoginView.swift */; };
@@ -48,9 +49,10 @@
 		4A2E89DCE5A9B02D94E989FF /* ARPlacementHostView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARPlacementHostView.swift; sourceTree = "<group>"; };
 		4C51D5B859B2AC7B2077AE09 /* ModelViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelViewerView.swift; sourceTree = "<group>"; };
 		5057AC72D30CD92129CE3C3B /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
-		554896A1C0A897378991A13C /* Mentis.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Mentis.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		554896A1C0A897378991A13C /* Mentis.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Mentis.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6845B409976B0CE7F13FEA21 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		687BAC246565D5F397B900BF /* MentisApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MentisApp.swift; sourceTree = "<group>"; };
+		8114FBAA8F41E96F8D22B967 /* USDZExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = USDZExporter.swift; sourceTree = "<group>"; };
 		89FE638C21CAD48683939419 /* ServerDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerDiscovery.swift; sourceTree = "<group>"; };
 		944FC45A28557EEBA07D699D /* RoomPlan.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = RoomPlan.framework; path = System/Library/Frameworks/RoomPlan.framework; sourceTree = SDKROOT; };
 		99F0816CF9D5D880D0D782A0 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
@@ -97,6 +99,7 @@
 				E69C8B8B1C155DBF59BD69DD /* Info.plist */,
 				49644A3F5FADBF23FBF5F297 /* LaunchScreen.storyboard */,
 				687BAC246565D5F397B900BF /* MentisApp.swift */,
+				8114FBAA8F41E96F8D22B967 /* USDZExporter.swift */,
 				56F0FE5CB531E54B1070CC1E /* AR */,
 				EF201E1E5F5FBF18D283638C /* LanguageLearning */,
 				429ED769FB8BB07AF47855F0 /* Models */,
@@ -217,11 +220,6 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1500;
-				TargetAttributes = {
-					8BF80417BCDB05593E0CDD9A = {
-						DevelopmentTeam = "";
-					};
-				};
 			};
 			buildConfigurationList = B6F2D81AF23D3F100C845FB1 /* Build configuration list for PBXProject "Mentis" */;
 			developmentRegion = en;
@@ -279,6 +277,7 @@
 				8E54E484D6395C88F0D319B3 /* RoomListView.swift in Sources */,
 				D699710534693CC8615B32E8 /* ScanView.swift in Sources */,
 				742E4B80166F64B7E9EBFEBE /* ServerDiscovery.swift in Sources */,
+				2DCF0D0E3311474B636C1333 /* USDZExporter.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -290,7 +289,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = Q4KYJ4PS58;
 				INFOPLIST_FILE = Mentis/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -308,7 +307,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = Q4KYJ4PS58;
 				INFOPLIST_FILE = Mentis/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

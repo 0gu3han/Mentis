@@ -941,9 +941,9 @@ final class MeshScanCoordinator: NSObject, ARSCNViewDelegate {
             }
 
             let url = FileManager.default.temporaryDirectory
-                .appendingPathComponent(UUID().uuidString + ".glb")
+                .appendingPathComponent(UUID().uuidString + ".usdz")
 
-            if GLBWriter.write(meshes: glbMeshes, to: url) {
+            if USDZExporter.write(meshes: glbMeshes, to: url) {
                 DispatchQueue.main.async { self.onExported(url) }
             }
         }

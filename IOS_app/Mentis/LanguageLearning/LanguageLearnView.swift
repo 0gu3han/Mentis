@@ -66,19 +66,28 @@ enum LangOption: String, CaseIterable, Identifiable, Hashable {
 private final class SpeechPlayer: ObservableObject {
     private let synth = AVSpeechSynthesizer()
 
+    init() {
+        // Force playback category so TTS works even when the silent switch is on
+        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: .duckOthers)
+        try? AVAudioSession.sharedInstance().setActive(true)
+    }
+
     func speak(_ text: String, langCode: String) {
         guard !text.isEmpty else { return }
         synth.stopSpeaking(at: .immediate)
         let utterance = AVSpeechUtterance(string: text)
+        // Prefer exact language voice; fall back to any available voice for that language prefix
         utterance.voice = AVSpeechSynthesisVoice(language: langCode)
+            ?? AVSpeechSynthesisVoice.speechVoices().first(where: { $0.language.hasPrefix(String(langCode.prefix(2))) })
         utterance.rate = 0.42
+        utterance.volume = 1.0
         synth.speak(utterance)
     }
 }
 
 // MARK: - Main View
 
-@available(iOS 17.4, *)
+@available(iOS 18.0, *)
 struct LanguageLearnView: View {
     @StateObject private var classifier = ObjectClassifier()
     @StateObject private var speechPlayer = SpeechPlayer()
@@ -91,6 +100,8 @@ struct LanguageLearnView: View {
     @State private var isFrozen = false
     @State private var showLangPicker = false
     @State private var pulseActive = false
+    @State private var scanLineOffset: CGFloat = -80
+    @State private var reticleGlow = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -110,6 +121,16 @@ struct LanguageLearnView: View {
             .ignoresSafeArea()
             .allowsHitTesting(false)
 
+            // Scan reticle — centered in the camera area
+            VStack(spacing: 0) {
+                Spacer()
+                    .frame(height: 120) // clear of top bar
+                scanReticle
+                Spacer()
+                    .frame(height: 220) // clear of bottom card
+            }
+            .allowsHitTesting(false)
+
             VStack(spacing: 0) {
                 topBar
                 Spacer()
@@ -125,6 +146,8 @@ struct LanguageLearnView: View {
             classifier.start()
             setupTranslation()
             pulseActive = true
+            reticleGlow = true
+            scanLineOffset = 80
         }
         .onDisappear {
             classifier.stop()
@@ -187,6 +210,62 @@ struct LanguageLearnView: View {
         .padding(.top, 56)
         .padding(.bottom, 14)
         .background(.ultraThinMaterial)
+    }
+
+    // MARK: - Scan Reticle
+
+    private var scanReticle: some View {
+        let size: CGFloat = 200
+        let cornerLen: CGFloat = 28
+        let lineWidth: CGFloat = 3
+        let color = isFrozen ? Color.mSecondary : Color.mPrimary
+
+        return ZStack {
+            // Dimmed area outside reticle (vignette corners)
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(color.opacity(reticleGlow ? 0.9 : 0.5), lineWidth: lineWidth)
+                .frame(width: size, height: size)
+                .animation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true), value: reticleGlow)
+
+            // Corner brackets
+            ForEach(0..<4, id: \.self) { i in
+                CornerBracket(length: cornerLen, lineWidth: lineWidth + 0.5, color: color)
+                    .rotationEffect(.degrees(Double(i) * 90))
+                    .frame(width: size, height: size)
+            }
+
+            if !isFrozen {
+                // Sweeping scan line
+                Rectangle()
+                    .fill(
+                        LinearGradient(
+                            colors: [.clear, color.opacity(0.7), .clear],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: size - 8, height: 2)
+                    .offset(y: scanLineOffset)
+                    .clipShape(RoundedRectangle(cornerRadius: 16).offset(y: -scanLineOffset))
+                    .animation(
+                        .easeInOut(duration: 1.5).repeatForever(autoreverses: true),
+                        value: scanLineOffset
+                    )
+
+                // Center crosshair dot
+                Circle()
+                    .fill(color)
+                    .frame(width: 6, height: 6)
+                    .opacity(reticleGlow ? 1.0 : 0.4)
+                    .animation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true), value: reticleGlow)
+            } else {
+                // Frozen indicator
+                Image(systemName: "pause.fill")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(color.opacity(0.8))
+            }
+        }
+        .frame(width: size, height: size)
     }
 
     private var scanStatus: some View {
@@ -333,7 +412,7 @@ struct LanguageLearnView: View {
 
 // MARK: - Language Picker Sheet
 
-@available(iOS 17.4, *)
+@available(iOS 18.0, *)
 private struct LangPickerSheet: View {
     @Binding var selected: LangOption
     @Environment(\.dismiss) private var dismiss
@@ -376,5 +455,30 @@ private struct LangPickerSheet: View {
             }
         }
         .preferredColorScheme(.dark)
+    }
+}
+
+// MARK: - Corner Bracket Shape
+
+private struct CornerBracket: View {
+    let length: CGFloat
+    let lineWidth: CGFloat
+    let color: Color
+
+    var body: some View {
+        Canvas { ctx, size in
+            let w = size.width
+            let h = size.height
+            // Top-left corner only; rotated via .rotationEffect at call site
+            var path = Path()
+            path.move(to: CGPoint(x: 0, y: length))
+            path.addLine(to: CGPoint(x: 0, y: 0))
+            path.addLine(to: CGPoint(x: length, y: 0))
+            ctx.stroke(
+                path,
+                with: .color(color),
+                style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
+            )
+        }
     }
 }
