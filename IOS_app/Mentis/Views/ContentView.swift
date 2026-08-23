@@ -33,14 +33,14 @@ struct ContentView: View {
                 }
 
             Group {
-                if #available(iOS 17.4, *) {
+                if #available(iOS 18.0, *) {
                     LanguageLearnView()
                 } else {
                     VStack(spacing: 16) {
                         Image(systemName: "translate")
                             .font(.system(size: 48, weight: .light))
                             .foregroundStyle(Color.mSecondary)
-                        Text("Language Learning requires iOS 17.4 or later.")
+                        Text("Language Learning requires iOS 18 or later.")
                             .font(.mBody())
                             .foregroundStyle(Color.mSecondary)
                             .multilineTextAlignment(.center)

@@ -68,10 +68,7 @@ def _convert_usdz_to_glb(app, room_id: int, usdz_path: str):
         if room:
             room.glb_path = glb_path
             db.session.commit()
-    try:
-        os.remove(usdz_path)
-    except OSError:
-        pass
+    # Keep the original USDZ — serve_glb uses it for iOS (SceneKit loads USDZ natively)
 
 
 @bp.route("/health")
@@ -146,11 +143,48 @@ def list_rooms():
         ]
         return {"rooms": rooms}
 
+def _glb_to_usdz(glb_path: str) -> str | None:
+    """Convert a GLB/GLTF file to USDZ via xcrun usdzconvert (macOS + Xcode required).
+    Returns the USDZ path on success, None otherwise. Result is cached next to the source."""
+    usdz_path = glb_path.rsplit(".", 1)[0] + "_ios.usdz"
+    if os.path.exists(usdz_path):
+        return usdz_path
+    xcrun = shutil.which("xcrun")
+    if not xcrun:
+        return None
+    try:
+        result = subprocess.run(
+            [xcrun, "usdzconvert", glb_path, usdz_path],
+            timeout=120, capture_output=True,
+        )
+        if result.returncode == 0 and os.path.exists(usdz_path):
+            return usdz_path
+    except (subprocess.TimeoutExpired, OSError):
+        pass
+    return None
+
+
 @bp.route("/rooms/<int:room_id>/glb")
 def serve_glb(room_id: int):
         room = Room.query.get_or_404(room_id)
         directory, filename = os.path.split(room.glb_path)
         ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+
+        # iOS SceneKit cannot load GLB — prefer the USDZ sidecar that was kept at upload time.
+        # Fall back to xcrun usdzconvert for rooms uploaded before this fix.
+        if ext in ("glb", "gltf"):
+            stem = room.glb_path.rsplit(".", 1)[0]
+            usdz_sidecar = stem + ".usdz"
+            if not os.path.exists(usdz_sidecar):
+                usdz_sidecar = _glb_to_usdz(room.glb_path)  # legacy fallback
+            if usdz_sidecar and os.path.exists(usdz_sidecar):
+                usdz_dir, usdz_file = os.path.split(usdz_sidecar)
+                return send_from_directory(
+                    usdz_dir, usdz_file,
+                    as_attachment=False,
+                    mimetype="model/vnd.usdz+zip",
+                )
+
         mime = {
             "glb":  "model/gltf-binary",
             "gltf": "model/gltf+json",

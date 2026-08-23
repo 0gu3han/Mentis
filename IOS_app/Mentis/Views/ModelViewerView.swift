@@ -140,7 +140,7 @@ struct ModelViewerView: View {
             let downloadedURL = try await file
             anchors = (try? await anchorList) ?? []
 
-                // SceneKit supports USDZ natively; GLB is not supported on iOS SCNView
+            // Backend converts GLB → USDZ before serving; SceneKit loads USDZ natively
             if (try? SCNScene(url: downloadedURL, options: nil)) != nil {
                 localFileURL = downloadedURL
             } else {
@@ -186,10 +186,10 @@ struct ModelSceneView: UIViewRepresentable {
         view.backgroundColor = UIColor(red: 0.062, green: 0.078, blue: 0.102, alpha: 1)
         view.antialiasingMode = .multisampling4X
 
-        // Load GLB via ModelIO, or USDZ/other via SceneKit directly
+        // Backend serves USDZ (converted from GLB server-side); SceneKit loads it natively
         let scene = (try? SCNScene(url: fileURL, options: [
             SCNSceneSource.LoadingOption.convertToYUp: true,
-            SCNSceneSource.LoadingOption.flattenScene: false
+            SCNSceneSource.LoadingOption.flattenScene: false,
         ])) ?? SCNScene()
 
         // Apply material settings: keep existing textures, add grey fallback only if no material.
